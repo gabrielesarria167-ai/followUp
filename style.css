@@ -87,9 +87,10 @@ h1, h2, p { margin: 0; }
 .list-head h1 { font-size: 26px; font-weight: 600; }
 .range { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 13px; color: var(--muted); }
 .range label { display: inline-flex; align-items: center; gap: 6px; }
-.range input {
-  min-height: 36px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 6px;
-  background: var(--surface); color: var(--text); font-size: 14px;
+.range select {
+  appearance: none; min-height: 36px; padding: 0 32px 0 10px; border: 1px solid var(--line-strong); border-radius: 6px;
+  background: var(--surface) url("assets/chevron.svg") no-repeat right 10px center / 10px;
+  color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums;
 }
 .table-box { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 table { width: 100%; min-width: 640px; border-collapse: collapse; }
