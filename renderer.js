@@ -116,7 +116,7 @@ function renderList() {
   $('table-box').hidden = !rows.length;
   $('empty').hidden = !!rows.length;
   $('empty').textContent = $('status').classList.contains('error')
-    ? 'Nessun dato: manca l\'archivio fatture nella cartella data di FollowUp.'
+    ? 'Nessun dato: archivio fatture non trovato. Reinstalla FollowUp e seleziona wcFatture.mdb.'
     : ranged() ? 'Nessuna fattura in questo periodo.'
     : `Nessuna fattura da contattare in ${MONTHS[month - 1].toLowerCase()} ${year}.`;
   $('rows').replaceChildren(...rows.map(row));
