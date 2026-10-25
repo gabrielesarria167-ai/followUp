@@ -1,0 +1,407 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T03:59:57.436780+00:00",
+  "title": "Design System: FollowUp",
+  "extensions": {
+    "colorMeta": {
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#17181a",
+        "cssVar": "--bg",
+        "tonalRamp": [
+          "#0a0b0d",
+          "#242527",
+          "#414244",
+          "#606164",
+          "#818285",
+          "#a4a5a8",
+          "#c8c9cc",
+          "#edeef1"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#1c1d20",
+        "cssVar": "--surface",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#242528",
+          "#414245",
+          "#606165",
+          "#818286",
+          "#a3a5a9",
+          "#c7c9cd",
+          "#edeef3"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "#232427",
+        "cssVar": "--raised",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#242528",
+          "#414245",
+          "#606165",
+          "#818286",
+          "#a3a5a9",
+          "#c8c9cd",
+          "#edeef2"
+        ]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#26282b",
+        "cssVar": "--line",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#232528",
+          "#404245",
+          "#5f6165",
+          "#808286",
+          "#a3a5a9",
+          "#c7c9cd",
+          "#eceff3"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Line",
+        "canonical": "#3a3c40",
+        "cssVar": "--line-strong",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#232529",
+          "#404246",
+          "#5f6166",
+          "#808287",
+          "#a3a5aa",
+          "#c7c9ce",
+          "#eceef4"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Text",
+        "canonical": "#e9eae6",
+        "cssVar": "--text",
+        "tonalRamp": [
+          "#0b0b09",
+          "#252522",
+          "#42423f",
+          "#61625e",
+          "#82837f",
+          "#a4a5a2",
+          "#c9cac6",
+          "#eeefeb"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "canonical": "#a3a59f",
+        "cssVar": "--muted",
+        "tonalRamp": [
+          "#0a0c08",
+          "#242621",
+          "#41433e",
+          "#60625d",
+          "#81837d",
+          "#a4a6a0",
+          "#c8cac4",
+          "#edefe9"
+        ]
+      },
+      "faint": {
+        "role": "neutral",
+        "displayName": "Faint",
+        "canonical": "#8e908a",
+        "cssVar": "--faint",
+        "tonalRamp": [
+          "#0a0c08",
+          "#242621",
+          "#41433e",
+          "#60625c",
+          "#81837d",
+          "#a4a6a0",
+          "#c8cac4",
+          "#edefe9"
+        ]
+      },
+      "off": {
+        "role": "neutral",
+        "displayName": "Off",
+        "canonical": "#6e706b",
+        "cssVar": "--off",
+        "tonalRamp": [
+          "#0a0c08",
+          "#242622",
+          "#41433e",
+          "#60625d",
+          "#81837e",
+          "#a4a6a1",
+          "#c8cac4",
+          "#edefea"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Selection Yellow",
+        "canonical": "#f2cf3a",
+        "cssVar": "--accent",
+        "tonalRamp": [
+          "#1f0100",
+          "#3e1c00",
+          "#5d3c00",
+          "#7e5c00",
+          "#a17f00",
+          "#c5a200",
+          "#eac72e",
+          "#ffed5f"
+        ]
+      },
+      "selected": {
+        "role": "neutral",
+        "displayName": "Selected",
+        "canonical": "#2a2b2f",
+        "cssVar": "--selected",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#242529",
+          "#414246",
+          "#606166",
+          "#818287",
+          "#a3a5aa",
+          "#c7c9ce",
+          "#edeef4"
+        ]
+      },
+      "hover": {
+        "role": "neutral",
+        "displayName": "Hover",
+        "canonical": "#222326",
+        "cssVar": "--hover",
+        "tonalRamp": [
+          "#0a0b0e",
+          "#242528",
+          "#414245",
+          "#606165",
+          "#818286",
+          "#a3a5a9",
+          "#c8c9cd",
+          "#edeef2"
+        ]
+      },
+      "whatsapp": {
+        "role": "secondary",
+        "displayName": "WhatsApp Green",
+        "canonical": "#1a7a45",
+        "cssVar": "--wa",
+        "tonalRamp": [
+          "#001600",
+          "#003302",
+          "#005321",
+          "#107440",
+          "#3e9760",
+          "#63bb82",
+          "#88e0a5",
+          "#adffc9"
+        ]
+      },
+      "whatsapp-hover": {
+        "role": "secondary",
+        "displayName": "WhatsApp Green Hover",
+        "canonical": "#1f8a50",
+        "cssVar": "--wa-hover",
+        "tonalRamp": [
+          "#001600",
+          "#003400",
+          "#00541e",
+          "#00753d",
+          "#32985d",
+          "#5abd7f",
+          "#80e2a2",
+          "#a6ffc7"
+        ]
+      },
+      "warn": {
+        "role": "tertiary",
+        "displayName": "Warm Orange",
+        "canonical": "#ff8a5c",
+        "cssVar": "--warn",
+        "tonalRamp": [
+          "#340000",
+          "#590000",
+          "#7f0d00",
+          "#a53800",
+          "#cc5c2d",
+          "#f48052",
+          "#ffa476",
+          "#ffca9a"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "title": {
+        "displayName": "Title",
+        "purpose": "Month heading."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Client name in the detail panel."
+      },
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "FollowUp wordmark in the top bar."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Table cells, buttons, months; client names at 600; phone input at 15px."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Panel field labels, definition list, top-bar status."
+      },
+      "caption": {
+        "displayName": "Caption",
+        "purpose": "Column heads (600), second lines in cells, hints, month counts."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "background-quick",
+        "value": "background-color 120ms ease-out",
+        "purpose": "Button hover fill change; the only transition."
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--accent); outline-offset: 2px",
+      "purpose": "Every focusable control."
+    },
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "1180px",
+        "purpose": "max-width: months become a wrapping row, panel 320px beside the list, Nº column hidden."
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Outlined Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Default control: Aggiorna, Elimina, Successiva.",
+      "html": "<div class=\"ds-root\"><button class=\"ds-btn\">Successiva</button> <button class=\"ds-btn\" disabled>Successiva</button></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:0 16px;border:1px solid var(--line-strong);border-radius:6px;background:transparent;color:var(--text);font:inherit;cursor:pointer;transition:background-color 120ms ease-out} .ds-btn:hover:not(:disabled){background:#2c2e32} .ds-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px} .ds-btn:disabled{color:var(--off);cursor:not-allowed}"
+    },
+    {
+      "name": "WhatsApp Button",
+      "kind": "button",
+      "refersTo": "button-whatsapp",
+      "description": "The single filled, primary action.",
+      "html": "<div class=\"ds-root\" style=\"width:300px\"><button class=\"ds-btn-wa\">Apri WhatsApp</button></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-btn-wa{width:100%;min-height:44px;padding:0 16px;border:0;border-radius:6px;background:var(--wa);color:#fff;font:inherit;font-weight:600;cursor:pointer;transition:background-color 120ms ease-out} .ds-btn-wa:hover:not(:disabled){background:var(--wa-hover)} .ds-btn-wa:focus-visible{outline:2px solid var(--accent);outline-offset:2px} .ds-btn-wa:disabled{background:var(--raised);color:var(--off)}"
+    },
+    {
+      "name": "Annulla Link",
+      "kind": "button",
+      "refersTo": "link",
+      "description": "Undo after contact or dismissal, beside the closed note.",
+      "html": "<div class=\"ds-root\"><div class=\"ds-closed\"><span>Contattato il 24/10</span><button class=\"ds-link\">Annulla</button></div></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-closed{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;font-weight:600;width:300px} .ds-link{padding:0;border:0;background:none;color:var(--text);font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer} .ds-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}"
+    },
+    {
+      "name": "Phone Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Recessed phone input with label and hint.",
+      "html": "<div class=\"ds-root\"><label class=\"ds-field\"><span>Telefono</span><input type=\"tel\" placeholder=\"Aggiungi numero\"><span class=\"ds-hint ds-warn\">Aggiungi un numero per scrivere su WhatsApp.</span></label></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-field{display:flex;flex-direction:column;gap:6px;width:300px} .ds-field>span:first-child{font-size:13px;color:var(--muted)} .ds-field input{min-height:40px;padding:0 12px;border:1px solid var(--line-strong);border-radius:6px;background:var(--bg);color:var(--text);font:inherit;font-size:15px;font-variant-numeric:tabular-nums} .ds-field input::placeholder{color:var(--faint)} .ds-field input:focus-visible{outline:2px solid var(--accent);outline-offset:2px} .ds-hint{font-size:12px;color:var(--muted)} .ds-warn{color:var(--warn)}"
+    },
+    {
+      "name": "Month List",
+      "kind": "nav",
+      "refersTo": "month-item",
+      "description": "Months with open counts; selected month carries the yellow marker.",
+      "html": "<div class=\"ds-root\" style=\"width:200px\"><button class=\"ds-month\"><span>Giugno</span><small>22</small></button><button class=\"ds-month\" aria-current=\"true\"><span>Luglio</span><small>19</small></button><button class=\"ds-month\"><span>Agosto</span><small>3</small></button><button class=\"ds-month\" disabled><span>Settembre</span></button></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-month{position:relative;display:flex;justify-content:space-between;align-items:center;width:100%;min-height:38px;padding:0 12px 0 16px;border:0;border-radius:6px;background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer;margin-bottom:2px} .ds-month small{font-size:12px;color:var(--muted)} .ds-month:hover:not(:disabled){background:var(--hover)} .ds-month:focus-visible{outline:2px solid var(--accent);outline-offset:2px} .ds-month:disabled{color:var(--off);cursor:default} .ds-month[aria-current=true]{background:#26282c;font-weight:600} .ds-month[aria-current=true] small{color:var(--accent)} .ds-month[aria-current=true]::before{content:'';position:absolute;left:4px;top:11px;width:3px;height:16px;border-radius:2px;background:var(--accent)}"
+    },
+    {
+      "name": "Status",
+      "kind": "chip",
+      "description": "Dot plus word for each invoice state.",
+      "html": "<div class=\"ds-root\"><span class=\"ds-state\">Da contattare</span><br><span class=\"ds-state ds-messaged\">Contattato</span><br><span class=\"ds-state ds-dismissed\">Eliminata</span><br><span class=\"ds-state ds-nophone\">Senza telefono</span></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-state{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;line-height:2} .ds-state::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor} .ds-messaged,.ds-dismissed{color:var(--muted)} .ds-messaged::before{background:var(--accent)} .ds-dismissed::before{background:var(--off)} .ds-nophone{color:var(--warn)}"
+    },
+    {
+      "name": "Invoice Table",
+      "kind": "card",
+      "refersTo": "table-box",
+      "description": "Two-line cells in a surface box; selected and handled rows.",
+      "html": "<div class=\"ds-root\"><div class=\"ds-box\"><table><thead><tr><th>Data</th><th>Cliente</th><th class=\"ds-num\">Totale</th></tr></thead><tbody><tr><td>31/07</td><td><b>Nuova Veronauto Srl</b><small>Verona 37139</small></td><td class=\"ds-num\">268,40 €</td></tr><tr class=\"ds-sel\"><td>28/07</td><td><b>Isalberti Alessandra</b><small>Verona 37139</small></td><td class=\"ds-num\">268,40 €</td></tr><tr class=\"ds-done\"><td>22/07</td><td><b>Rasotto Flotte Srl</b><small>Dueville 36031</small></td><td class=\"ds-num\">586,82 €</td></tr></tbody></table></div></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-box{border:1px solid var(--line);border-radius:8px;background:var(--surface);overflow:hidden} .ds-box table{width:100%;border-collapse:collapse} .ds-box th{padding:10px 14px;border-bottom:1px solid #33353a;text-align:left;font-size:12px;font-weight:600;color:var(--muted)} .ds-box td{padding:10px 14px;border-bottom:1px solid var(--line);vertical-align:top} .ds-box tr:last-child td{border-bottom:0} .ds-box tbody tr{cursor:pointer} .ds-box tbody tr:hover{background:var(--hover)} .ds-box tr.ds-sel{background:var(--selected)} .ds-box tr.ds-done{color:var(--faint)} .ds-box b{font-weight:600} .ds-box small{display:block;font-size:12px;color:var(--muted)} .ds-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}"
+    },
+    {
+      "name": "Detail Panel",
+      "kind": "custom",
+      "refersTo": "detail-panel",
+      "description": "Selected invoice: name, muted place/invoice line, facts, message, actions.",
+      "html": "<div class=\"ds-root\"><aside class=\"ds-detail\"><div><h2>Isalberti Alessandra</h2><div class=\"ds-muted\">Verona 37139 · Fattura 166 del 28/07/2026</div></div><dl><dt>Veicolo</dt><dd>CITROEN C3 · CT574YC</dd><dt>Totale</dt><dd>268,40 €</dd></dl><p class=\"ds-msg\">Buongiorno, la contattiamo in merito al lavoro svolto…</p></aside></div>",
+      "css": ".ds-root{font:14px/1.45 \"Segoe UI Variable Text\", \"Segoe UI\", system-ui, sans-serif;color:var(--text);background:var(--bg);padding:16px} .ds-detail{width:340px;padding:20px;border:1px solid var(--line);border-radius:8px;background:var(--surface);display:flex;flex-direction:column;gap:18px} .ds-detail h2{margin:4px 0 0;font-size:20px;font-weight:600} .ds-muted{color:var(--muted)} .ds-detail dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:13px} .ds-detail dt{color:var(--muted)} .ds-detail dd{margin:0} .ds-msg{margin:0;padding:12px 14px;border-radius:6px;background:var(--raised);line-height:1.5}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Quiet Desk",
+    "overview": "One dark screen for one monthly sitting: months on the left, the month's invoices in the middle, the selected invoice beside them. Graphite ground, slightly lifted surfaces, hairline borders, the system font at a calm 14px. Nothing on screen is there to decorate; the eye goes to the selected month, the selected row and the one green action.\n\nThe product commitment drives the world: simplicity and a natural, familiar feel come before visual design. Controls look like the controls people already know on a Windows PC (outlined buttons, a native select, a plain text field, an underlined link). There are no metric cards, banners, badges or illustrations.",
+    "keyCharacteristics": [
+      "Dark, low-contrast tonal surfaces separated by 1px hairlines, never shadows.",
+      "One yellow accent, reserved for what is selected or done.",
+      "One filled button per screen: WhatsApp green.",
+      "System type only, weight 600 as the only emphasis.",
+      "Status read through a small dot plus a plain word."
+    ],
+    "rules": [
+      {
+        "name": "The Yellow Is Earned Rule",
+        "body": "Yellow marks only the selected month and the contacted dot (plus focus and selection). It is never a button, a heading, a border or a highlight on data.",
+        "section": "colors"
+      },
+      {
+        "name": "The One Fill Rule",
+        "body": "Exactly one filled button exists: Apri WhatsApp. Every other control is outlined, ghost or a link.",
+        "section": "colors"
+      },
+      {
+        "name": "The Title Case Rule",
+        "body": "Client names and places from Wincar arrive in capitals; they are shown in title case in the table and the panel. Vehicle and payment text are shown as stored.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Dates, invoice numbers, totals and phone numbers use tabular numerals; totals align right.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "**Do** keep yellow for the selected month and the contacted dot only (plus focus ring and text selection).",
+      "**Do** keep Apri WhatsApp the only filled button on the screen.",
+      "**Do** separate surfaces with 1px hairlines and tone, at 6px (controls) and 8px (containers) radius.",
+      "**Do** show status as a 7px dot plus a plain Italian word.",
+      "**Do** use the system font and weight 600 for every emphasis.",
+      "**Do** show Wincar names and places in title case."
+    ],
+    "donts": [
+      "**Don't** add metric cards, banners, badges, illustrations or other dashboard chrome.",
+      "**Don't** add shadows; depth is tonal.",
+      "**Don't** use yellow on buttons, headings, borders or data highlights.",
+      "**Don't** fill warm orange; it is text and dot only.",
+      "**Don't** add a second typeface, uppercase labels or letter-spacing."
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'">
+  <title>FollowUp</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="bar">
+    <span class="brand"><img src="assets/logo-mark.svg" alt="" width="24" height="23"><span>Follow<span class="brand-up">Up</span></span></span>
+    <span id="status" class="status" role="status"></span>
+    <button id="refresh" class="btn">
+      <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      Aggiorna
+    </button>
+  </header>
+
+  <div class="layout">
+    <nav class="months" aria-label="Mesi">
+      <select id="year" aria-label="Anno"></select>
+      <div id="months"></div>
+    </nav>
+
+    <main class="list">
+      <div class="list-head">
+        <h1 id="title"></h1>
+        <p id="summary" class="muted"></p>
+      </div>
+      <div class="range">
+        <label>Dal <input id="from" type="date"></label>
+        <label>al <input id="to" type="date"></label>
+        <button id="range-clear" class="link" hidden>Torna al mese</button>
+      </div>
+      <p id="empty" class="empty" hidden></p>
+      <div id="table-box" class="table-box">
+        <table>
+          <thead>
+            <tr><th data-sort="date"><button class="sort">Data</button></th><th data-sort="number"><button class="sort">Nº</button></th><th data-sort="client"><button class="sort">Cliente</button></th><th>Veicolo</th><th class="num" data-sort="total"><button class="sort">Totale</button></th><th data-sort="status"><button class="sort">Stato</button></th></tr>
+          </thead>
+          <tbody id="rows"></tbody>
+        </table>
+      </div>
+    </main>
+
+    <aside id="detail" class="detail" aria-label="Fattura selezionata" hidden></aside>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
