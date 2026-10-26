@@ -1,38 +1,68 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import electronUpdater from 'electron-updater';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { loadInvoices } from './db.js';
+import { loadInvoices, shopVats } from './db.js';
+import { checkLicense } from './license.js';
 import { buildMessage, monthView, normalizePhone, openStore, phoneKey, rangeView, waUrl, yearView } from './store.js';
 
 let store;
 let win;
 let invoices = [];
 let dbError = null;
+let shop = { vats: [], latest: null }; // what the license is checked against
 
 // Installed app: invoices live in the user profile (data/wcFatture.mdb), so app updates never overwrite them.
 // data/ESEMPIO marks the client preview: only then are phones invented. Delete it with the real data.
 const dataDir = () => join(app.isPackaged ? app.getPath('userData') : import.meta.dirname, 'data');
 
+// The archive picked on the lock screen, else the one inside FollowUp.
+const dbPath = () => store.data.dbPath ?? join(dataDir(), 'wcFatture.mdb');
+
+const checkKey = (key) => checkLicense(key, { ...shop, now: Date.now(), lastSeen: store.data.lastSeen });
+
 function readDb() {
-  const path = join(dataDir(), 'wcFatture.mdb');
+  const path = dbPath();
   const sample = existsSync(join(dataDir(), 'ESEMPIO'));
+  let all = [];
   try {
-    invoices = loadInvoices(path, { samplePhones: sample });
+    all = loadInvoices(path, { samplePhones: sample });
+    shop = { vats: shopVats(path), latest: all[0]?.date ?? null };
     dbError = null;
   } catch (err) {
-    invoices = [];
+    shop = { vats: [], latest: null };
     dbError = existsSync(path) ? `Impossibile leggere ${path}: ${err.message}` : `Archivio fatture mancante: ${path}`;
   }
+  const license = checkKey(store.data.license);
+  store.update((d) => { d.lastSeen = Math.max(d.lastSeen ?? 0, Date.now()); });
+  // Locked: no invoices in the main process, so every other handler has nothing to act on.
+  invoices = license.ok ? all : [];
   return {
     error: dbError,
     sample,
     years: [...new Set(invoices.map((i) => Number(i.date.slice(0, 4))))],
     latest: invoices[0]?.date ?? null,
+    license: { ...license, needsDb: !shop.vats.length },
   };
 }
 
 ipcMain.handle('refresh', () => readDb());
+
+// A wrong key never replaces a working one.
+ipcMain.handle('activate', (_e, key) => {
+  const k = String(key ?? '').trim();
+  const { ok, reason } = checkKey(k);
+  if (ok) store.update((d) => { d.license = k; });
+  return { ...readDb(), rejected: ok ? null : reason };
+});
+
+ipcMain.handle('pickDb', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Archivio fatture Wincar', properties: ['openFile'], filters: [{ name: 'Archivio Wincar', extensions: ['mdb'] }],
+  });
+  if (!canceled) store.update((d) => { d.dbPath = filePaths[0]; });
+  return readDb();
+});
 
 ipcMain.handle('month', (_e, year, month) => monthView(invoices, store.data, year, month, Date.now()));
 

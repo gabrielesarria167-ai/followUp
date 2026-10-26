@@ -40,6 +40,13 @@ export function loadInvoices(path, { samplePhones = false } = {}) {
   return rows;
 }
 
+// The shop's own P.IVA: Wincar records it as the sender of every e-invoice. The license is bound to it.
+export function shopVats(path) {
+  const reader = new MDBReader(readFileSync(path));
+  if (!reader.getTableNames().includes('ProgressiviFE')) return [];
+  return [...new Set(reader.getTable('ProgressiviFE').getData({ columns: ['F_PFE_PARIVA'] }).map((r) => s(r.F_PFE_PARIVA)).filter(Boolean))];
+}
+
 // Preview only: the bundled sample has no F_TELEFO, so invent stable per-client numbers to show
 // every phone state. Never on real data, where these could belong to strangers.
 function placeholderPhone(code) {

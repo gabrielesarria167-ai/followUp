@@ -8,15 +8,37 @@
 </head>
 <body>
   <header class="bar">
-    <span class="brand"><img src="assets/logo-mark.svg" alt="" width="24" height="23"><span>Follow<span class="brand-up">Up</span></span></span>
+    <span class="brand"><img src="assets/logo-mark.svg" alt="" width="34" height="32"><span>Follow<span class="brand-up">Up</span></span></span>
+    <div id="license" class="license-chip" hidden>
+      <span class="ico i-calendar"></span>
+      <span><strong id="license-days"></strong><small id="license-until"></small></span>
+    </div>
     <span id="status" class="status" role="status"></span>
+    <button id="renew" class="link" hidden>Rinnova</button>
     <button id="refresh" class="btn">
       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
       Aggiorna
     </button>
   </header>
 
-  <div class="layout">
+  <section id="lock" class="lock" hidden>
+    <form id="lock-form" class="lock-form" aria-labelledby="lock-title">
+      <span class="lock-badge"><span class="ico i-shield"></span></span>
+      <h1 id="lock-title">Benvenuto in Follow<span class="brand-up">Up</span></h1>
+      <p class="muted">Incolla la chiave di licenza ricevuta per attivare FollowUp su questo PC.</p>
+      <p id="lock-reason" class="lock-reason" hidden></p>
+      <label class="field">
+        <span><span class="ico i-key"></span>Chiave di licenza</span>
+        <textarea id="key" rows="4" spellcheck="false" autocomplete="off" required></textarea>
+      </label>
+      <p id="lock-error" class="hint warn" role="alert" hidden></p>
+      <button class="btn btn-confirm">Conferma</button>
+      <button id="pick-db" type="button" class="link" hidden>Scegli l'archivio fatture</button>
+      <button id="lock-close" type="button" class="link" hidden>Annulla</button>
+    </form>
+  </section>
+
+  <div id="layout" class="layout">
     <nav class="months" aria-label="Mesi">
       <select id="year" aria-label="Anno"></select>
       <div id="months"></div>
@@ -24,13 +46,13 @@
 
     <main class="list">
       <div class="list-head">
-        <h1 id="title"></h1>
-        <p id="summary" class="muted"></p>
+        <h1><span class="ico i-calendar"></span><span id="title"></span></h1>
+        <div id="summary" class="pills"></div>
       </div>
       <div class="range">
         <label>Dal <input id="from" type="date"></label>
         <label>al <input id="to" type="date"></label>
-        <button id="range-clear" class="link" hidden>Torna al mese</button>
+        <button id="range-clear" class="btn" hidden><span class="ico i-rotate"></span>Torna al mese</button>
       </div>
       <p id="empty" class="empty" hidden></p>
       <div id="table-box" class="table-box">

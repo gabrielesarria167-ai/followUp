@@ -29,13 +29,25 @@ function el(tag, props = {}, ...children) {
   return node;
 }
 
-async function refresh() {
-  const meta = await window.api.refresh();
+// meta: what activate/pickDb already returned, else a fresh read.
+async function refresh(meta) {
+  meta ??= await window.api.refresh();
+  const { license } = meta;
+  const expiring = license.ok && license.daysLeft <= 30;
+  renderLock(meta, expiring);
+  $('license').hidden = !license.ok;
+  $('license').classList.toggle('expiring', expiring);
+  if (license.ok) {
+    $('license-days').textContent = `${license.daysLeft} ${license.daysLeft === 1 ? 'giorno disponibile' : 'giorni disponibili'}`;
+    $('license-until').textContent = [license.name, `Valida fino al ${fmtDate(license.expires)}`].filter(Boolean).join(' · ');
+  }
   $('status').textContent = meta.error ?? [
     meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura',
     meta.sample && 'Anteprima: numeri di telefono di esempio',
   ].filter(Boolean).join(' · ');
   $('status').classList.toggle('error', !!meta.error);
+  // Locked: no invoices to show; forget the month so unlocking opens the newest one.
+  if (!license.ok) { year = null; return; }
 
   const years = meta.years.length ? meta.years : [new Date().getFullYear()];
   $('year').replaceChildren(...years.map((y) => el('option', { value: y, textContent: y })));
@@ -45,6 +57,26 @@ async function refresh() {
   }
   $('year').value = year;
   await render();
+}
+
+// Shown only while locked; during the last 30 days "Rinnova" opens it. A valid key closes it.
+function renderLock({ license, rejected, error }, expiring) {
+  showLock(!license.ok || !!rejected);
+  $('renew').hidden = !expiring;
+  $('lock-close').hidden = !license.ok;
+  $('pick-db').hidden = !license.needsDb;
+  const reason = license.ok ? `La licenza scade il ${fmtDate(license.expires)}.` : license.reason || error;
+  $('lock-reason').hidden = !reason;
+  $('lock-reason').textContent = reason ?? '';
+  $('lock-error').hidden = !rejected;
+  $('lock-error').textContent = rejected ?? '';
+}
+
+// The screen covers the app; what is behind it can't be reached by keyboard either.
+function showLock(open) {
+  $('lock').hidden = !open;
+  $('layout').inert = document.querySelector('.bar').inert = open;
+  if (open) $('key').focus();
 }
 
 // A Dal/al date replaces the selected month until cleared.
@@ -90,7 +122,7 @@ function renderMonths(months) {
     const b = el('button', {
       className: `month${m.total && !m.open ? ' closed' : ''}`,
       disabled: !m.total,
-    }, el('span', { textContent: MONTHS[i] }), m.open ? el('small', { textContent: m.open }) : null);
+    }, el('span', { textContent: MONTHS[i] }), el('small', { textContent: m.open }));
     b.setAttribute('aria-current', String(!ranged() && i + 1 === month));
     b.addEventListener('click', () => { month = i + 1; selectedKey = null; clearRange(); render(); });
     return b;
@@ -103,12 +135,13 @@ function renderList() {
   const messaged = rows.filter((r) => r.status === 'messaged').length;
   $('title').textContent = periodTitle();
   $('range-clear').hidden = !ranged();
-  $('summary').textContent = rows.length && !pending.length
-    ? [ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`, messaged && `${messaged} contattate`].filter(Boolean).join(' · ')
+  const pill = (color, text) => el('span', { className: `pill ${color}`, textContent: text });
+  $('summary').replaceChildren(...(rows.length && !pending.length
+    ? [pill('green', ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`)]
     : [
-      `${rows.length} fatture`, `${pending.length} da contattare`,
-      messaged && `${messaged} contattate`, noPhone && `${noPhone} senza telefono`,
-    ].filter(Boolean).join(' · ');
+      pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`),
+      messaged && pill('green', `${messaged} contattate`), noPhone && pill('red', `${noPhone} senza telefono`),
+    ]).filter(Boolean));
   for (const th of document.querySelectorAll('th[data-sort]')) {
     th.setAttribute('aria-sort', th.dataset.sort !== sort.col ? 'none' : sort.dir > 0 ? 'ascending' : 'descending');
   }
@@ -171,6 +204,7 @@ function renderDetail() {
   const nextBtn = el('button', { className: 'btn', textContent: 'Successiva', disabled: !next });
   nextBtn.addEventListener('click', () => select(next.key));
   const wa = action('Apri WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key), !r.phone);
+  wa.prepend(icon('whatsapp'));
   if (!r.phone) wa.title = 'Aggiungi prima un numero di telefono';
   const actions = isPending(r)
     ? [wa,
@@ -181,24 +215,30 @@ function renderDetail() {
        nextBtn];
 
   $('detail').replaceChildren(
-    el('div', {},
-      el('h2', { textContent: titleCase(r.client) || '—' }),
-      el('div', { className: 'muted', textContent: [titleCase(r.place), `Fattura ${r.number} del ${fmtDate(r.date)}`].filter(Boolean).join(' · ') })),
+    el('div', { className: 'detail-head' },
+      el('span', { className: 'tile' }, icon('building')),
+      el('div', {},
+        el('h2', { textContent: titleCase(r.client) || '—' }),
+        el('div', { className: 'muted', textContent: titleCase(r.place) }))),
     el('dl', {},
-      el('dt', { textContent: 'Veicolo' }), el('dd', { textContent: [r.vehicle, r.plate].filter(Boolean).join(' · ') || '—' }),
-      el('dt', { textContent: 'Pagamento' }), el('dd', { textContent: r.payment || '—' }),
-      el('dt', { textContent: 'Totale' }), el('dd', { className: 'nowrap', textContent: euro.format(r.total) })),
+      el('dt', {}, icon('car'), 'Veicolo'), el('dd', { textContent: [r.vehicle, r.plate].filter(Boolean).join(' · ') || '—' }),
+      el('dt', {}, icon('receipt'), 'Fattura'), el('dd', { className: 'nowrap', textContent: `n. ${r.number} del ${fmtDate(r.date)}` }),
+      el('dt', {}, icon('card'), 'Pagamento'), el('dd', { textContent: r.payment || '—' }),
+      el('dt', {}, icon('coins'), 'Totale'), el('dd', { className: 'nowrap total', textContent: euro.format(r.total) })),
     el('label', { className: 'field' },
-      el('span', { textContent: 'Telefono' }), phone,
+      el('span', {}, icon('phone'), 'Telefono'), phone,
       el('span', { className: `hint${warn ? ' warn' : ''}`, textContent: hint })),
     el('div', { className: 'field' },
-      el('span', { textContent: 'Messaggio' }),
+      el('span', {}, icon('message'), 'Messaggio'),
       el('p', { className: 'message', textContent: r.message })),
     el('div', { className: 'actions' }, ...actions,
       failed && el('p', { className: 'hint warn', role: 'alert', textContent: 'Operazione non riuscita. Riprova.' })),
   );
   failed = false;
 }
+
+// Decorative icon: a CSS mask over an assets/ SVG, so nothing here is parsed as markup.
+const icon = (name) => el('span', { className: `ico i-${name}` });
 
 // Runs a save in the main process; a failure is shown in the panel instead of being lost.
 async function save(run) {
@@ -225,7 +265,16 @@ for (const id of ['from', 'to']) {
   $(id).addEventListener('change', () => { $('to').min = $('from').value; selectedKey = null; render(); });
 }
 $('range-clear').addEventListener('click', () => { clearRange(); selectedKey = null; render(); });
-$('refresh').addEventListener('click', refresh);
+$('refresh').addEventListener('click', () => refresh());
+$('renew').addEventListener('click', () => showLock(true));
+$('lock-close').addEventListener('click', () => showLock(false));
+$('pick-db').addEventListener('click', async () => refresh(await window.api.pickDb()));
+$('lock-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const meta = await window.api.activate($('key').value);
+  if (!meta.rejected) $('key').value = '';
+  refresh(meta);
+});
 // Same column flips the order; a new one starts A→Z for text, newest/highest first for the rest.
 for (const b of document.querySelectorAll('th[data-sort] button')) {
   b.addEventListener('click', () => {

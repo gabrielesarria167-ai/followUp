@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { loadInvoices } from '../db.js';
+import { loadInvoices, shopVats } from '../db.js';
 
 const dir = new URL('../FollowUp_handoff/', import.meta.url);
 
@@ -41,4 +41,8 @@ test('placeholder phones only when asked, stable per client, covering every stat
   }
   const kinds = new Set([...phones.values()].map((p) => p === '' ? 'none' : p.includes('/') ? 'both' : p[0]));
   assert.deepEqual([...kinds].sort(), ['0', '3', 'both', 'none']);
+});
+
+test('shopVats reads the shop\'s own P.IVA', () => {
+  assert.deepEqual(shopVats(new URL('../data/wcFatture.mdb', import.meta.url)), ['03256760236']);
 });
