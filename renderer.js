@@ -47,11 +47,9 @@ async function refresh(meta) {
     $('license-days').textContent = `${license.daysLeft} ${license.daysLeft === 1 ? 'giorno disponibile' : 'giorni disponibili'}`;
     $('license-until').textContent = `Valida fino al ${fmtDate(license.expires)}`;
   }
-  // The licensed company; its logo replaces the building icon once one is chosen.
   $('company').hidden = !license.ok || !license.name;
   $('company-name').textContent = license.name ?? '';
-  $('logo').classList.toggle('has-logo', !!meta.logo);
-  $('logo').replaceChildren(meta.logo ? el('img', { src: meta.logo, alt: '' }) : icon('building'));
+  showLogo(meta.logo);
   $('status').textContent = meta.error ?? [
     meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura',
     meta.sample && 'Anteprima: numeri di telefono di esempio',
@@ -69,6 +67,12 @@ async function refresh(meta) {
   }
   $('year').value = year;
   await render();
+}
+
+// The licensed company's logo replaces the building icon once one is chosen.
+function showLogo(logo) {
+  $('logo').classList.toggle('has-logo', !!logo);
+  $('logo').replaceChildren(logo ? el('img', { src: logo, alt: '' }) : icon('building'));
 }
 
 // Shown only while locked; during the last 30 days "Rinnova" opens it. A valid key closes it.
@@ -173,7 +177,7 @@ function renderList() {
     return b;
   };
   $('summary').replaceChildren(...(rows.length && !pending.length
-    ? [pill('green', searching() ? 'Tutte contattate' : ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`, 'messaged')]
+    ? [pill('green', searching() ? 'Nessuna da contattare' : ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`, 'messaged')]
     : [
       pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`, 'pending'),
       messaged && pill('green', `${messaged} contattate`, 'messaged'), noPhone && pill('red', `${noPhone} senza telefono`, 'nophone'),
@@ -300,7 +304,7 @@ function action(text, className, run, disabled = false) {
 }
 
 $('year').addEventListener('change', () => { year = Number($('year').value); selectedKey = null; $('search').value = ''; clearRange(); render(); });
-$('search').addEventListener('input', () => { selectedKey = null; render(); });
+$('search').addEventListener('input', () => render()); // the selection stays while it is still in the list
 // The other end follows so the span never runs backwards.
 $('from').addEventListener('change', () => { if (span()[1] < span()[0]) $('to').value = $('from').value; selectedKey = null; render(); });
 $('to').addEventListener('change', () => { if (span()[0] > span()[1]) $('from').value = $('to').value; selectedKey = null; render(); });
@@ -309,7 +313,7 @@ $('refresh').addEventListener('click', () => refresh());
 $('renew').addEventListener('click', () => showLock(true));
 $('lock-close').addEventListener('click', () => showLock(false));
 $('pick-db').addEventListener('click', async () => refresh(await window.api.pickDb()));
-$('logo').addEventListener('click', async () => refresh(await window.api.pickLogo()));
+$('logo').addEventListener('click', async () => showLogo(await window.api.pickLogo()));
 $('lock-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const meta = await window.api.activate($('key').value);

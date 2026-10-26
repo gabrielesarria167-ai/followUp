@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import electronUpdater from 'electron-updater';
-import { copyFileSync, existsSync, readFileSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { loadInvoices, shopVats } from './db.js';
 import { checkLicense } from './license.js';
@@ -81,6 +81,7 @@ ipcMain.handle('pickDb', async () => {
 });
 
 const LOGO_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+const LOGO_MAX = 2 * 1024 * 1024; // it travels with every refresh
 
 // Sent as a data URL: the page may only load images from itself or inline.
 function logoDataUrl() {
@@ -100,10 +101,15 @@ ipcMain.handle('pickLogo', async () => {
   });
   const ext = extname(filePaths[0] ?? '').toLowerCase();
   if (!canceled && LOGO_TYPES[ext]) {
-    copyFileSync(filePaths[0], join(app.getPath('userData'), `logo${ext}`));
-    store.update((d) => { d.logo = `logo${ext}`; });
+    try {
+      if (statSync(filePaths[0]).size > LOGO_MAX) throw new Error('il file supera 2 MB');
+      copyFileSync(filePaths[0], join(app.getPath('userData'), `logo${ext}`));
+      store.update((d) => { d.logo = `logo${ext}`; });
+    } catch (err) {
+      await dialog.showMessageBox(win, { type: 'warning', title: 'Logo aziendale', message: `Logo non salvato: ${err.message}` });
+    }
   }
-  return readDb();
+  return logoDataUrl();
 });
 
 ipcMain.handle('month', (_e, year, month) => monthView(invoices, store.data, year, month, Date.now()));

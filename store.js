@@ -89,8 +89,9 @@ function periodView(invoices, data, inPeriod, now) {
 // Every visible invoice, any period, whose client, vehicle or plate contains each word of the query.
 export function searchView(invoices, data, query, now) {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  return rangeView(invoices, data, '', '', now)
-    .filter((r) => words.every((w) => [r.client, r.vehicle, r.plate].join(' ').toLowerCase().includes(w)));
+  // Matched first, so the per-row work runs only on the hits, not the whole archive.
+  const hits = invoices.filter((inv) => words.every((w) => [inv.client, inv.vehicle, inv.plate].join(' ').toLowerCase().includes(w)));
+  return rangeView(hits, data, '', '', now);
 }
 
 // Per-month totals for the month list: all invoices, and those still to contact.
