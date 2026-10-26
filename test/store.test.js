@@ -13,6 +13,7 @@ test('7-day hide rule', () => {
   assert.equal(isHidden({ status: 'messaged', at: now - 7 * DAY + 3600e3 }, now), false);
   assert.equal(isHidden({ status: 'messaged', at: now - 7 * DAY - 1000 }, now), true);
   assert.equal(isHidden({ status: 'dismissed', at: now - 8 * DAY }, now), true);
+  assert.equal(isHidden({ status: 'messaged', at: now, removed: true }, now), true);
 });
 
 test('normalizePhone', () => {

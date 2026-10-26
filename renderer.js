@@ -13,6 +13,12 @@ let rows = []; // in display order
 let selectedKey = null;
 let failed = false; // the last save failed; the panel says so once
 let sort = { col: 'date', dir: -1 }; // newest first
+let pinned = null; // the summary pill pressed: its rows go first, the rest after
+const PINS = {
+  pending: isPending,
+  messaged: (r) => r.status === 'messaged',
+  nophone: (r) => isPending(r) && !r.phone,
+};
 const STATUS_ORDER = ['pending', 'nophone', 'messaged', 'dismissed'];
 const SORTS = {
   date: (a, b) => a.date.localeCompare(b.date) || SORTS.number(a, b),
@@ -98,6 +104,7 @@ async function render() {
     ranged() ? window.api.range($('from').value, $('to').value) : window.api.month(year, month),
   ]);
   rows = list;
+  if (pinned && !rows.some(PINS[pinned])) pinned = null; // e.g. another month: nothing left to pin
   sortRows();
   if (!rows.some((r) => r.key === selectedKey)) selectedKey = (rows.find(isPending) ?? rows[0])?.key ?? null;
   renderMonths(months);
@@ -108,7 +115,7 @@ async function render() {
 // Ties stay newest first, like the archive order.
 function sortRows() {
   const by = SORTS[sort.col];
-  rows.sort((a, b) => sort.dir * by(a, b) || b.date.localeCompare(a.date) || b.key.localeCompare(a.key, undefined, { numeric: true }));
+  rows.sort((a, b) => (pinned ? PINS[pinned](b) - PINS[pinned](a) : 0) || sort.dir * by(a, b) || b.date.localeCompare(a.date) || b.key.localeCompare(a.key, undefined, { numeric: true }));
 }
 
 function select(key) {
@@ -135,12 +142,19 @@ function renderList() {
   const messaged = rows.filter((r) => r.status === 'messaged').length;
   $('title').textContent = periodTitle();
   $('range-clear').hidden = !ranged();
-  const pill = (color, text) => el('span', { className: `pill ${color}`, textContent: text });
+  // A pill with a pin is a toggle button: pressing it again restores the plain sort.
+  const pill = (color, text, pin) => {
+    if (!pin) return el('span', { className: `pill ${color}`, textContent: text });
+    const b = el('button', { className: `pill ${color}`, textContent: text });
+    b.setAttribute('aria-pressed', String(pinned === pin));
+    b.addEventListener('click', () => { pinned = pinned === pin ? null : pin; sortRows(); select(selectedKey); });
+    return b;
+  };
   $('summary').replaceChildren(...(rows.length && !pending.length
-    ? [pill('green', ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`)]
+    ? [pill('green', ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`, 'messaged')]
     : [
-      pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`),
-      messaged && pill('green', `${messaged} contattate`), noPhone && pill('red', `${noPhone} senza telefono`),
+      pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`, 'pending'),
+      messaged && pill('green', `${messaged} contattate`, 'messaged'), noPhone && pill('red', `${noPhone} senza telefono`, 'nophone'),
     ]).filter(Boolean));
   for (const th of document.querySelectorAll('th[data-sort]')) {
     th.setAttribute('aria-sort', th.dataset.sort !== sort.col ? 'none' : sort.dir > 0 ? 'ascending' : 'descending');
@@ -212,7 +226,9 @@ function renderDetail() {
     : [el('div', { className: 'closed-note' },
         el('span', { textContent: `${r.status === 'messaged' ? 'Contattato' : 'Eliminata'} il ${fmtTs(r.at)}` }),
         action('Annulla', 'link', () => window.api.setStatus(r.key, null))),
-       nextBtn];
+       r.status === 'messaged'
+         ? el('div', { className: 'actions-row' }, action('Elimina', 'btn', () => window.api.remove(r.key)), nextBtn)
+         : nextBtn];
 
   $('detail').replaceChildren(
     el('div', { className: 'detail-head' },

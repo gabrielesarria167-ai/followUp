@@ -87,6 +87,11 @@ ipcMain.handle('setStatus', (_e, key, status) => {
   });
 });
 
+// Only a contacted invoice can be removed; it stays contacted, so it never comes back as to-do.
+ipcMain.handle('remove', (_e, key) => {
+  store.update(({ states }) => { if (states[key]?.status === 'messaged') states[key].removed = true; });
+});
+
 ipcMain.handle('openWhatsApp', async (_e, key) => {
   const inv = invoices.find((i) => i.key === key);
   if (!inv) return;

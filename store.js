@@ -33,7 +33,8 @@ export function openStore(file) {
   };
 }
 
-export const isHidden = (state, now) => !!state && now - state.at > WEEK_MS;
+// Removed: taken off the list by hand before the week is up.
+export const isHidden = (state, now) => !!state && (!!state.removed || now - state.at > WEEK_MS);
 
 // Turns free text like "0444 123456 / 333 1234567" into wa.me digits, preferring a mobile.
 // shortcut: numbers without a prefix are assumed Italian (+39); revisit if the client has foreign clients.

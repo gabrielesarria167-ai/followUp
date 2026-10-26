@@ -75,6 +75,9 @@ h1, h2, p { margin: 0; }
   font-size: 13px; color: var(--text);
 }
 .pill::before, .state::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+button.pill { cursor: pointer; transition: background-color 120ms ease-out, border-color 120ms ease-out; }
+button.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
+.pill[aria-pressed="true"] { border-color: var(--c); background: color-mix(in srgb, var(--c) 32%, transparent); font-weight: 600; }
 .blue { --c: var(--blue); }
 .yellow, .state.pending { --c: var(--yellow); }
 .green, .state.messaged { --c: var(--green); }
@@ -175,6 +178,8 @@ tbody tr[aria-selected="true"]::after {
   border: 1px solid var(--green); border-radius: 8px; background: color-mix(in srgb, var(--green) 20%, var(--surface));
 }
 tbody tr[aria-selected="true"] td { border-bottom-color: transparent; }
+tbody tr[aria-selected="true"]:hover { background: none; }
+tbody tr[aria-selected="true"]:hover::after { background: color-mix(in srgb, var(--green) 28%, var(--surface)); }
 tr.is-done { color: var(--faint); }
 td small { display: block; font-size: 13px; color: var(--muted); }
 .client { padding: 0; border: 0; background: none; font-weight: 600; text-align: left; cursor: pointer; }

@@ -11,5 +11,6 @@ contextBridge.exposeInMainWorld('api', {
   year: call('year'),
   setPhone: call('setPhone'),
   setStatus: call('setStatus'),
+  remove: call('remove'),
   openWhatsApp: call('openWhatsApp'),
 });
