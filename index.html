@@ -10,7 +10,11 @@
   <header class="bar">
     <span class="brand"><img src="assets/logo-mark.svg" alt="" width="34" height="32"><span>Follow<span class="brand-up">Up</span></span></span>
     <div id="company" class="company" hidden>
-      <button id="logo" class="company-logo" type="button" title="Scegli il logo aziendale" aria-label="Scegli il logo aziendale"></button>
+      <button id="logo" class="company-logo" type="button" popovertarget="logo-menu" title="Logo aziendale" aria-label="Logo aziendale"></button>
+      <div id="logo-menu" class="menu" popover>
+        <button id="logo-pick" type="button" popovertarget="logo-menu" popovertargetaction="hide">Scegli immagine…</button>
+        <button id="logo-remove" type="button" popovertarget="logo-menu" popovertargetaction="hide" hidden>Rimuovi logo</button>
+      </div>
       <span><small>Azienda</small><strong id="company-name"></strong></span>
     </div>
     <div id="license" class="license-chip" hidden>
@@ -74,6 +78,19 @@
 
     <aside id="detail" class="detail" aria-label="Fattura selezionata" hidden></aside>
   </div>
+
+  <dialog id="tpl-dialog" class="tpl-dialog" aria-labelledby="tpl-title">
+    <form method="dialog">
+      <h2 id="tpl-title"></h2>
+      <textarea id="tpl-text" class="message" rows="9" maxlength="1000" aria-labelledby="tpl-title" autofocus></textarea>
+      <p class="hint">{cliente} {veicolo} {targa} {fattura} {data} {totale} si compilano da soli con i dati della fattura. Le parti tra [parentesi quadre] sostituiscile con i tuoi dati.</p>
+      <div class="tpl-actions">
+        <button id="tpl-reset" type="button" class="link">Ripristina il testo originale</button>
+        <button class="btn" value="cancel">Annulla</button>
+        <button class="btn btn-confirm" value="save">Salva</button>
+      </div>
+    </form>
+  </dialog>
 
   <footer class="foot"><span id="status" class="status" role="status"></span><span class="foot-end"><button id="update" class="update" hidden></button><span id="version" class="version"></span></span></footer>
 

@@ -4,7 +4,7 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // FollowUp's own state. Never stored in Wincar.
 export function openStore(file) {
-  let data = { phones: {}, states: {} };
+  let data = { phones: {}, states: {}, templates: {} };
   if (existsSync(file)) {
     try {
       data = { ...data, ...JSON.parse(readFileSync(file, 'utf8')) };
@@ -53,14 +53,34 @@ export function normalizePhone(text) {
 
 export const waUrl = (phone, text) => `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 
-// Draft text from spec §7. Waiting for client approval.
-export function buildMessage(inv) {
-  const [y, m, d] = inv.date.split('-');
-  const vehicle = inv.plate ? ` sul veicolo targato ${inv.plate}` : '';
-  return `Buongiorno, la contattiamo in merito al lavoro svolto${vehicle} (fattura n. ${inv.number} del ${d}/${m}/${y}). ` +
-    `Volevamo sapere com'è andato il lavoro e se è rimasto soddisfatto del risultato. ` +
-    `Se ha osservazioni o suggerimenti, siamo a disposizione. Grazie.`;
-}
+// The ready messages. {…} is filled from the invoice (the panel does it); [between brackets] is for the owner
+// to replace, in the message or for good with Modifica. A fifth of invoices have no plate: the text must read without it.
+export const TEMPLATES = [
+  {
+    id: 'thanks', name: 'Ringraziamento per il lavoro svolto',
+    text: `Buongiorno {cliente}, la ringraziamo per averci affidato il suo veicolo {targa}. È stato un piacere occuparcene: per qualsiasi necessità siamo a sua disposizione. A presto!`,
+  },
+  {
+    // Draft text from spec §7, the default. Waiting for client approval.
+    id: 'feedback', name: 'Richiesta feedback',
+    text: `Buongiorno, la contattiamo in merito al lavoro svolto sul suo veicolo {targa} (fattura n. {fattura} del {data}). Volevamo sapere com'è andato il lavoro e se è rimasto soddisfatto del risultato. Se ha osservazioni o suggerimenti, siamo a disposizione. Grazie.`,
+  },
+  {
+    id: 'payment', name: 'Promemoria pagamento',
+    text: `Buongiorno {cliente}, le ricordiamo che la fattura n. {fattura} del {data}, di {totale}, risulta ancora da saldare. Può pagare con bonifico all'IBAN [IBAN] oppure direttamente in officina. Se ha già provveduto, non tenga conto di questo messaggio. Grazie.`,
+  },
+  {
+    id: 'review', name: 'Richiesta recensione',
+    text: `Buongiorno {cliente}, speriamo che sia soddisfatto del lavoro sul suo veicolo {targa}. Se le va di lasciarci una recensione, per noi sarebbe di grande aiuto: [link alla recensione]. Grazie mille!`,
+  },
+  {
+    id: 'offer', name: 'Offerta servizi aggiuntivi',
+    text: `Buongiorno {cliente}, grazie ancora per averci scelto. Per il suo veicolo {veicolo} le proponiamo anche [servizio offerto] a [prezzo o sconto]. Se le interessa, risponda a questo messaggio e fissiamo un appuntamento.`,
+  },
+];
+
+// Each template in the owner's wording where they changed it; the original stays for Ripristina.
+export const templateList = (data) => TEMPLATES.map((t) => ({ ...t, original: t.text, text: data.templates[t.id] ?? t.text }));
 
 // Saved phones follow the client; code 0 is not a real client, so those stay on their own invoice.
 export const phoneKey = (inv) => inv.clientCode || inv.key;
@@ -80,7 +100,7 @@ function periodView(invoices, data, inPeriod, now) {
       const phoneText = data.phones[phoneKey(inv)] ?? inv.telefo;
       const state = data.states[inv.key];
       return {
-        ...inv, phoneText, ...normalizePhone(phoneText), message: buildMessage(inv),
+        ...inv, phoneText, ...normalizePhone(phoneText),
         status: state?.status ?? 'pending', at: state?.at ?? null,
       };
     });

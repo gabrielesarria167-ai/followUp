@@ -6,6 +6,11 @@ const fmtShort = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const fmtTs = (ts) => new Date(ts).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' });
 const titleCase = (s) => s.toLowerCase().replace(/(^|[\s.'-])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase());
 const isPending = (r) => r.status === 'pending';
+// A template with this invoice's details; a missing one (a fifth have no plate) leaves no stray space.
+const fill = (text, r) => {
+  const vals = { cliente: titleCase(r.client), veicolo: r.car, targa: r.plate, fattura: r.number, data: fmtDate(r.date), totale: euro.format(r.total) };
+  return text.replace(/\{(\w+)\}/g, (m, k) => (Object.hasOwn(vals, k) ? vals[k] ?? '' : m)).replace(/ +(?=[ ,.;:!?)])/g, '');
+};
 
 let year = null;
 let month = null;
@@ -14,6 +19,10 @@ let selectedKey = null;
 let failed = false; // the last save failed; the panel says so once
 let sort = { col: 'date', dir: -1 }; // newest first
 let pinned = null; // the summary pill pressed: its rows go first, the rest after
+let templates = []; // the five ready messages, in the owner's wording
+let tplId = 'feedback'; // the template in use: it stays chosen from one invoice to the next
+let draft = null; // { key, text }: the message as typed over for one invoice
+let editing = null; // the template open in Modifica
 const PINS = {
   pending: isPending,
   messaged: (r) => r.status === 'messaged',
@@ -50,6 +59,7 @@ async function refresh(meta) {
   $('company').hidden = !license.ok || !license.name;
   $('company-name').textContent = license.name ?? '';
   showLogo(meta.logo);
+  templates = meta.templates;
   $('status').textContent = meta.error ?? [
     meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura',
     meta.sample && 'Anteprima: numeri di telefono di esempio',
@@ -73,6 +83,7 @@ async function refresh(meta) {
 function showLogo(logo) {
   $('logo').classList.toggle('has-logo', !!logo);
   $('logo').replaceChildren(logo ? el('img', { src: logo, alt: '' }) : icon('building'));
+  $('logo-remove').hidden = !logo;
 }
 
 // Shown only while locked; during the last 30 days "Rinnova" opens it. A valid key closes it.
@@ -241,12 +252,35 @@ function renderDetail() {
     : !r.mobile ? ['Numero fisso? WhatsApp potrebbe non funzionare.', true]
     : ['Se lo correggi, resta salvato per questo cliente.', false];
 
+  // The message box: the chosen template filled for this invoice, or what the owner typed over it.
+  const tpl = templates.find((t) => t.id === tplId) ?? templates[0];
+  const choose = (t) => {
+    const b = el('button', { className: 'template', textContent: t.name });
+    b.setAttribute('aria-pressed', String(t === tpl));
+    b.addEventListener('click', () => {
+      tplId = t.id; draft = null; renderDetail();
+      $('detail').querySelector('.template[aria-pressed="true"]').focus();
+      $('detail').querySelector('textarea.message').parentElement.scrollIntoView({ block: 'nearest' }); // the new text, and its warning, in view
+    });
+    return b;
+  };
+  const edit = el('button', { className: 'link', textContent: 'Modifica' });
+  edit.addEventListener('click', () => editTemplate(tpl));
+  const text = el('textarea', {
+    className: 'message', rows: 6, maxLength: 1000, placeholder: 'Scrivi il tuo messaggio…',
+    value: draft?.key === r.key ? draft.text : fill(tpl.text, r),
+  });
+  const todo = el('span', { className: 'hint warn', textContent: 'Completa le parti tra [parentesi quadre], qui o per sempre con Modifica.' });
+
   const next = nextPending();
   const nextBtn = el('button', { className: 'btn', textContent: 'Successiva', disabled: !next });
   nextBtn.addEventListener('click', () => select(next.key));
-  const wa = action('Apri WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key), !r.phone);
+  const wa = action('Apri WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key, text.value), !r.phone);
   wa.prepend(icon('whatsapp'));
   if (!r.phone) wa.title = 'Aggiungi prima un numero di telefono';
+  const check = () => { todo.hidden = !/\[[^\]\n]*\]/.test(text.value); wa.disabled = !r.phone || !text.value.trim(); };
+  text.addEventListener('input', () => { draft = { key: r.key, text: text.value }; check(); });
+  check();
   const actions = isPending(r)
     ? [wa,
        el('div', { className: 'actions-row' }, action('Elimina', 'btn', () => window.api.setStatus(r.key, 'dismissed')), nextBtn)]
@@ -257,7 +291,8 @@ function renderDetail() {
          ? el('div', { className: 'actions-row' }, action('Elimina', 'btn', () => window.api.remove(r.key)), nextBtn)
          : nextBtn];
 
-  $('detail').replaceChildren(
+  // A tall panel scrolls its body; the actions stay at the bottom, always in reach.
+  $('detail').replaceChildren(el('div', { className: 'detail-body' },
     el('div', { className: 'detail-head' },
       el('span', { className: 'tile' }, icon('building')),
       el('div', {},
@@ -271,13 +306,24 @@ function renderDetail() {
     el('label', { className: 'field' },
       el('span', {}, icon('phone'), 'Telefono'), phone,
       el('span', { className: `hint${warn ? ' warn' : ''}`, textContent: hint })),
-    el('div', { className: 'field' },
-      el('span', {}, icon('message'), 'Messaggio'),
-      el('p', { className: 'message', textContent: r.message })),
+    // Only what is still to send gets a message.
+    isPending(r) && el('div', { className: 'field' },
+      el('span', {}, icon('file-text'), 'Template messaggi', edit),
+      el('div', { className: 'templates' }, ...templates.map(choose))),
+    isPending(r) && el('label', { className: 'field' }, el('span', {}, icon('message'), 'Messaggio libero'), text, todo)),
     el('div', { className: 'actions' }, ...actions,
       failed && el('p', { className: 'hint warn', role: 'alert', textContent: 'Operazione non riuscita. Riprova.' })),
   );
   failed = false;
+}
+
+// Rewrites a template for good; the panel's message box is for one invoice only.
+function editTemplate(t) {
+  editing = t;
+  $('tpl-title').textContent = t.name;
+  $('tpl-text').value = t.text;
+  $('tpl-dialog').returnValue = ''; // Esc keeps the last value: it must not read as a save
+  $('tpl-dialog').showModal();
 }
 
 // Decorative icon: a CSS mask over an assets/ SVG, so nothing here is parsed as markup.
@@ -313,7 +359,15 @@ $('refresh').addEventListener('click', () => refresh());
 $('renew').addEventListener('click', () => showLock(true));
 $('lock-close').addEventListener('click', () => showLock(false));
 $('pick-db').addEventListener('click', async () => refresh(await window.api.pickDb()));
-$('logo').addEventListener('click', async () => showLogo(await window.api.pickLogo()));
+$('logo-pick').addEventListener('click', async () => showLogo(await window.api.pickLogo()));
+$('logo-remove').addEventListener('click', async () => showLogo(await window.api.removeLogo()));
+$('tpl-reset').addEventListener('click', () => { $('tpl-text').value = editing.original; });
+$('tpl-dialog').addEventListener('close', async () => {
+  if ($('tpl-dialog').returnValue !== 'save') return;
+  await save(async () => { templates = await window.api.setTemplate(editing.id, $('tpl-text').value); });
+  draft = null; // show the new wording
+  renderDetail();
+});
 $('lock-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const meta = await window.api.activate($('key').value);

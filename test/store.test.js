@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isHidden, normalizePhone, waUrl, buildMessage, monthView, rangeView, searchView, yearView, openStore, phoneKey } from '../store.js';
+import { isHidden, normalizePhone, waUrl, templateList, TEMPLATES, monthView, rangeView, searchView, yearView, openStore, phoneKey } from '../store.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -39,11 +39,13 @@ test('waUrl encodes the text', () => {
   assert.equal(waUrl('393331234567', "com'è & ok?"), 'https://wa.me/393331234567?text=com\'%C3%A8%20%26%20ok%3F');
 });
 
-test('buildMessage mentions invoice and plate only when present', () => {
-  const m = buildMessage({ date: '2026-07-31', number: '167', plate: 'GM412XG' });
-  assert.match(m, /fattura n\. 167 del 31\/07\/2026/);
-  assert.match(m, /targato GM412XG/);
-  assert.doesNotMatch(buildMessage({ date: '2026-07-31', number: '1', plate: '' }), /targato/);
+test('templates: five, the owner\'s wording wins, the original stays', () => {
+  assert.equal(TEMPLATES.length, 5);
+  const list = templateList({ templates: { review: 'Grazie {cliente}!' } });
+  const review = list.find((t) => t.id === 'review');
+  assert.equal(review.text, 'Grazie {cliente}!');
+  assert.match(review.original, /\[link alla recensione\]/);
+  assert.equal(list.find((t) => t.id === 'feedback').text, TEMPLATES[1].text);
 });
 
 test('monthView: phone precedence, state, hiding', () => {
@@ -67,7 +69,6 @@ test('monthView: phone precedence, state, hiding', () => {
   assert.equal(rows[2].phone, '');
   assert.equal(rows[2].status, 'messaged');
   assert.equal(rows[0].status, 'pending');
-  assert.match(rows[0].message, /fattura n\. a del 10\/07\/2026/);
 
   // Date ranges span months, include both ends, may be open, and still drop hidden invoices.
   const keys = (from, to) => rangeView(invoices, data, from, to, now).map((r) => r.key);

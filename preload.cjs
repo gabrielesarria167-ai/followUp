@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld('api', {
   activate: call('activate'),
   pickDb: call('pickDb'),
   pickLogo: call('pickLogo'),
+  removeLogo: call('removeLogo'),
+  setTemplate: call('setTemplate'),
   month: call('month'),
   range: call('range'),
   search: call('search'),

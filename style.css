@@ -46,6 +46,7 @@ h1, h2, p { margin: 0; }
 .i-phone { --src: url("assets/phone.svg"); }
 .i-whatsapp { --src: url("assets/whatsapp.svg"); }
 .i-message { --src: url("assets/message.svg"); }
+.i-file-text { --src: url("assets/file-text.svg"); }
 .i-search { --src: url("assets/search.svg"); }
 .i-rotate { --src: url("assets/rotate.svg"); }
 .i-key { --src: url("assets/key.svg"); }
@@ -97,13 +98,24 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
 .company-logo {
   display: grid; place-items: center; flex: none; width: 52px; height: 52px; padding: 0;
   border: 1px solid var(--line-strong); border-radius: 10px; background: var(--raised); color: #9fb6d9; cursor: pointer;
-  transition: border-color 120ms ease-out;
+  transition: border-color 120ms ease-out; anchor-name: --logo;
 }
 .company-logo:hover { border-color: var(--blue); }
 .company-logo .ico { width: 28px; height: 28px; }
 /* A real logo fits the same tile, small if it's wide; white because most logos are drawn for paper. */
 .company-logo.has-logo { padding: 4px; background: #fff; overflow: hidden; }
 .company-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
+/* Opens under the logo tile; the popover closes itself on Esc or a click elsewhere. */
+.menu {
+  position-anchor: --logo; position-area: bottom span-right; inset: auto; margin: 8px 0 0;
+  min-width: 200px; padding: 6px; border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--text);
+}
+.menu button {
+  display: block; width: 100%; min-height: 40px; padding: 0 12px; border: 0; border-radius: 6px;
+  background: none; text-align: left; cursor: pointer;
+}
+.menu button:hover { background: var(--raised); }
+.menu button[hidden] { display: none; }
 .company small { display: block; font-size: 13px; color: var(--muted); }
 .company strong { display: block; font-size: 22px; font-weight: 700; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .license-chip {
@@ -229,11 +241,14 @@ th.num { font-weight: 600; }
 .nowrap { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .empty { padding: 48px; border: 1px solid var(--line); border-radius: 12px; text-align: center; color: var(--muted); background: var(--surface); }
 
+/* Never taller than the room between the header and the bottom bar: the body scrolls, the actions stay. */
 .detail {
-  position: sticky; top: 24px; padding: 22px;
+  position: sticky; top: 24px; max-height: calc(100vh - 166px); padding: 22px;
   border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
   display: flex; flex-direction: column; gap: 20px;
 }
+.detail-body { display: flex; flex-direction: column; gap: 20px; min-height: 0; overflow-y: auto; margin-right: -12px; padding-right: 12px; }
+.detail .actions { flex: none; }
 .detail[hidden] { display: none; }
 .detail-head { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
 .tile { display: grid; place-items: center; flex: none; width: 52px; height: 52px; border-radius: 10px; background: var(--raised); color: #9fb6d9; }
@@ -256,7 +271,33 @@ th.num { font-weight: 600; }
 .field input::placeholder { color: var(--faint); }
 .hint { font-size: 12px; color: var(--muted); }
 .hint.warn { color: var(--red); }
-.message { padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); line-height: 1.55; }
+.field > span:first-child .link { margin-left: auto; font-size: 13px; font-weight: 400; color: var(--muted); }
+.templates { display: flex; flex-direction: column; gap: 4px; }
+.template {
+  min-height: 36px; padding: 0 12px; border: 1px solid var(--line); border-radius: 8px;
+  background: none; text-align: left; cursor: pointer; transition: background-color 120ms ease-out;
+}
+.template:hover { background: var(--hover); }
+/* The template in use wears the selected-row look. */
+.template[aria-pressed="true"] { border-color: var(--green); background: color-mix(in srgb, var(--green) 20%, var(--surface)); font-weight: 600; }
+.message {
+  width: 100%; padding: 14px 16px; border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--bg); line-height: 1.55; resize: vertical;
+}
+.message:focus-visible { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 30%, transparent); }
+.message::placeholder { color: var(--faint); }
+
+/* Template editor: a card over the dimmed app; like the menu, depth from tone and hairline, no shadow. */
+.tpl-dialog {
+  width: min(560px, calc(100% - 48px)); padding: 28px; border: 1px solid var(--line-strong); border-radius: 16px;
+  background: var(--surface); color: var(--text);
+}
+.tpl-dialog::backdrop { background: rgb(5 10 20 / 0.7); }
+.tpl-dialog form { display: flex; flex-direction: column; gap: 14px; }
+.tpl-dialog h2 { font-size: 20px; font-weight: 700; }
+.tpl-actions { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
+.tpl-actions .link { margin-right: auto; font-size: 13px; color: var(--muted); }
+.tpl-actions .btn { min-width: 110px; min-height: 44px; }
 .actions { display: flex; flex-direction: column; gap: 10px; }
 .actions-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .closed-note {

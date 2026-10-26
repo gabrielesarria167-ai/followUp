@@ -93,7 +93,7 @@ Client names and places from Wincar are shown in title case. Dates, numbers, tot
 
 ## Layout
 
-A grid of months (230px), list (fluid) and detail (400px), with 24px gaps and page padding of 24px 32px 72px. The header bar (brand, the licensed company with its logo tile, license chip, search, Aggiorna) sits on #0b1526 with a hairline below it; a matching bar fixed at the bottom holds the status line on the left (archive date, preview note, load errors). The detail panel is sticky.
+A grid of months (230px), list (fluid) and detail (400px), with 24px gaps and page padding of 24px 32px 72px. The header bar (brand, the licensed company with its logo tile, license chip, search, Aggiorna) sits on #0b1526 with a hairline below it; a matching bar fixed at the bottom holds the status line on the left (archive date, preview note, load errors). The detail panel is sticky and never taller than the window: its body scrolls while the actions stay at the bottom.
 
 Under 1180px:
 - the search moves to a full-width row of its own under the header bar
@@ -116,10 +116,14 @@ Icons in `assets/` are copied from Lucide (lucide-static 0.460.0, ISC) and Simpl
 - **Detail panel**:
   - an icon tile with the client name and place
   - Veicolo, Fattura, Pagamento and Totale rows, each with an icon
-  - the phone field, the message box (recessed bg), and full-width Apri WhatsApp
+  - the phone field
+  - while still to contact: the five message templates (the one in use wears the selected-row look; Modifica rewrites it) and the Messaggio libero box (recessed bg), filled from the template and editable
+  - full-width Apri WhatsApp
   - Elimina and Successiva side by side
   - once handled, a green tinted note with the Annulla link
+- **Logo tile** (header): the company logo on white, or the building icon. A click opens a small menu under it (Scegli immagine…, and Rimuovi logo once one is set): a surface card with a hairline, items tinted raised on hover.
 - **License chip** (header): the days left and the expiry date, green, or yellow when the license is expiring.
+- **Template editor**: a centered dialog card over the dimmed app, hairline and no shadow: the template name, its text, the placeholder hint, the Ripristina link, Annulla and a blue Salva.
 - **License screen**: a centered dialog card on a blue glow, with a green shield badge, the key textarea, a full-width blue Conferma, and the reason and error shown as tinted notes.
 
 ## Don'ts

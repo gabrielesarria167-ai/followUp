@@ -1,10 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import electronUpdater from 'electron-updater';
-import { copyFileSync, existsSync, readFileSync, statSync } from 'node:fs';
+import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
 import { loadInvoices, shopVats } from './db.js';
 import { checkLicense } from './license.js';
-import { buildMessage, monthView, normalizePhone, openStore, phoneKey, rangeView, searchView, waUrl, yearView } from './store.js';
+import { monthView, normalizePhone, openStore, phoneKey, rangeView, searchView, templateList, TEMPLATES, waUrl, yearView } from './store.js';
 
 let store;
 let win;
@@ -59,6 +59,7 @@ function readDb() {
     latest: invoices[0]?.date ?? null,
     license: { ...license, needsDb: !shop.vats.length },
     logo: logoDataUrl(),
+    templates: templateList(store.data),
   };
 }
 
@@ -112,6 +113,33 @@ ipcMain.handle('pickLogo', async () => {
   return logoDataUrl();
 });
 
+// Back to the building icon; the copied file goes too.
+ipcMain.handle('removeLogo', async () => {
+  const name = store.data.logo;
+  try {
+    store.update((d) => { delete d.logo; });
+    if (name) rmSync(join(app.getPath('userData'), name), { force: true });
+  } catch (err) {
+    await dialog.showMessageBox(win, { type: 'warning', title: 'Logo aziendale', message: `Logo non rimosso: ${err.message}` });
+  }
+  return logoDataUrl();
+});
+
+const MESSAGE_MAX = 1000; // the panel's limit too
+
+// The owner's wording for a template; the original text, or none, brings the original back.
+ipcMain.handle('setTemplate', (_e, id, text) => {
+  const t = TEMPLATES.find((x) => x.id === id);
+  const value = String(text ?? '').trim().slice(0, MESSAGE_MAX);
+  if (t) {
+    store.update(({ templates }) => {
+      if (value && value !== t.text) templates[id] = value;
+      else delete templates[id];
+    });
+  }
+  return templateList(store.data);
+});
+
 ipcMain.handle('month', (_e, year, month) => monthView(invoices, store.data, year, month, Date.now()));
 
 ipcMain.handle('range', (_e, from, to) => rangeView(invoices, store.data, String(from), String(to), Date.now()));
@@ -142,13 +170,15 @@ ipcMain.handle('remove', (_e, key) => {
   store.update(({ states }) => { if (states[key]?.status === 'messaged') states[key].removed = true; });
 });
 
-ipcMain.handle('openWhatsApp', async (_e, key) => {
+// The text is the panel's message box: a template filled for this invoice, maybe edited.
+ipcMain.handle('openWhatsApp', async (_e, key, text) => {
   const inv = invoices.find((i) => i.key === key);
-  if (!inv) return;
+  const message = String(text ?? '').trim().slice(0, MESSAGE_MAX);
+  if (!inv || !message) return;
   const { phone } = normalizePhone(store.data.phones[phoneKey(inv)] ?? inv.telefo);
   if (!phone) return;
   // The URL is always built here, so only wa.me links ever reach the OS.
-  await shell.openExternal(waUrl(phone, buildMessage(inv)));
+  await shell.openExternal(waUrl(phone, message));
   store.update(({ states }) => { states[key] = { status: 'messaged', at: Date.now() }; });
 });
 
