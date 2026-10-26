@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, screen, shell } from 'electron';
 import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
@@ -190,13 +190,15 @@ app.commandLine.appendSwitch('lang', 'it-IT');
 
 app.whenReady().then(() => {
   store = openStore(join(app.getPath('userData'), 'followup.json'));
+  // Never bigger than the screen: on a 1366×768 laptop the bottom bar would open off-screen.
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   win = new BrowserWindow({
-    width: 1400,
-    height: 880,
+    width: Math.min(1400, width),
+    height: Math.min(880, height),
     minWidth: 960,
     title: 'FollowUp',
     icon: join(import.meta.dirname, 'assets', 'icon.png'),
-    backgroundColor: '#17181A',
+    backgroundColor: '#0a1322',
     autoHideMenuBar: true,
     webPreferences: { preload: join(import.meta.dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false },
   });

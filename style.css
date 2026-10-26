@@ -247,7 +247,7 @@ th.num { font-weight: 600; }
   border: 1px solid var(--line); border-radius: 12px; background: var(--surface);
   display: flex; flex-direction: column; gap: 20px;
 }
-.detail-body { display: flex; flex-direction: column; gap: 20px; min-height: 0; overflow-y: auto; margin-right: -12px; padding-right: 12px; }
+.detail-body { display: flex; flex-direction: column; gap: 20px; min-height: 0; overflow-y: auto; margin-right: -12px; padding-right: 12px; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 .detail .actions { flex: none; }
 .detail[hidden] { display: none; }
 .detail-head { display: flex; align-items: center; gap: 14px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
@@ -343,6 +343,52 @@ th.num { font-weight: 600; }
 .btn-confirm { min-height: 48px; border: 0; background: var(--blue); color: #fff; font-size: 15px; font-weight: 600; }
 .btn-confirm:hover:not(:disabled) { background: var(--blue-hover); }
 .lock .link { align-self: center; font-size: 13px; color: var(--muted); }
+
+/* Laptop widths (e.g. 1366px): same three columns, slimmer side columns and gutters so the table fits on one line. */
+@media (max-width: 1380px) {
+  .bar { gap: 20px; padding: 10px 24px; }
+  .company { padding-left: 20px; }
+  .license-chip { padding: 6px 14px; }
+  .search { width: min(300px, 24vw); }
+  .layout { grid-template-columns: 200px minmax(0, 1fr) 344px; gap: 20px; padding: 20px 24px 68px; }
+  .detail { top: 20px; }
+  .foot { padding: 10px 24px; }
+  table { min-width: 0; }
+  th, td { padding-left: 12px; padding-right: 12px; }
+  th:nth-child(2), td:nth-child(2) { display: none; } /* Nº is also in the detail panel */
+}
+
+/* Short windows (768px screens): a tighter vertical rhythm so the months and the whole panel fit without scrolling. */
+@media (max-height: 820px) {
+  .bar { padding-top: 8px; padding-bottom: 8px; }
+  .brand { font-size: 23px; }
+  .brand img { width: 30px; height: 28px; }
+  .company-logo { width: 44px; height: 44px; }
+  .company-logo .ico, .license-chip .ico { width: 24px; height: 24px; }
+  .company strong { font-size: 19px; }
+  .license-chip strong { font-size: 15px; }
+  .search { min-height: 40px; }
+  .months select { min-height: 44px; margin-bottom: 8px; font-size: 16px; }
+  .month { min-height: 40px; }
+  .list { gap: 14px; }
+  .list-head h1 { gap: 12px; font-size: 28px; }
+  .list-head h1 .ico { width: 28px; height: 28px; }
+  .range select { min-height: 40px; }
+  th, td { padding-top: 11px; padding-bottom: 11px; }
+  .detail { max-height: calc(100vh - 140px); padding: 18px; gap: 14px; } /* the header is shorter here */
+  .detail-body { gap: 14px; }
+  .detail-head { padding-bottom: 14px; }
+  .tile { width: 44px; height: 44px; }
+  .tile .ico { width: 24px; height: 24px; }
+  .detail h2 { font-size: 20px; }
+  .detail dl { gap: 8px 16px; }
+  .field { gap: 6px; }
+  .field input { min-height: 40px; }
+  .message { padding: 10px 14px; line-height: 1.5; }
+  .btn-wa { min-height: 44px; }
+  .actions { gap: 8px; }
+  .actions-row { gap: 8px; }
+}
 
 /* Narrow windows: months become a row on top so the detail panel stays beside the list. */
 @media (max-width: 1180px) {
