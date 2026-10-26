@@ -1,7 +1,7 @@
 {
   "name": "followup",
   "productName": "FollowUp",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Follow-up WhatsApp per le fatture Wincar",
   "main": "main.js",
   "private": true,
