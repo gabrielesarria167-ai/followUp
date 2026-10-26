@@ -120,10 +120,21 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
 /* Bottom bar: what the archive holds, or why it couldn't be read. */
 .foot {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 10px 32px; border-top: 1px solid var(--line); background: #0b1526;
 }
 .status { font-size: 13px; color: var(--muted); }
 .status.error { color: var(--red); }
+/* Right end: the running version, with the update button beside it once one is downloaded. */
+.foot-end { display: flex; align-items: center; gap: 12px; margin-left: auto; }
+.version { font-size: 13px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.version[data-progress]::before { content: attr(data-progress) " · "; }
+.update {
+  padding: 4px 14px; border: 0; border-radius: 999px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  background: var(--blue); color: #fff;
+}
+.update:hover { background: var(--blue-hover); }
+.update[hidden] { display: none; }
 .search {
   margin-left: auto; display: flex; align-items: center; gap: 10px; width: min(340px, 28vw); min-height: 44px; padding: 0 14px;
   border: 1px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--muted); cursor: text;

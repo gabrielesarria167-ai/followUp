@@ -15,4 +15,8 @@ contextBridge.exposeInMainWorld('api', {
   setStatus: call('setStatus'),
   remove: call('remove'),
   openWhatsApp: call('openWhatsApp'),
+  version: call('version'),
+  installUpdate: call('installUpdate'),
+  onUpdateProgress: (fn) => ipcRenderer.on('updateProgress', (_e, percent) => fn(percent)),
+  onUpdateReady: (fn) => ipcRenderer.on('updateReady', (_e, version) => fn(version)),
 });

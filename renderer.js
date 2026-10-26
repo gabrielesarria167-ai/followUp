@@ -329,4 +329,16 @@ for (const b of document.querySelectorAll('th[data-sort] button')) {
     select(selectedKey);
   });
 }
+window.api.version().then((v) => { $('version').textContent = `v${v}`; });
+// Updates download on their own; the button appears once one is ready (it also installs on close).
+window.api.onUpdateProgress((percent) => {
+  $('version').dataset.progress = `Download aggiornamento ${percent}%`;
+});
+window.api.onUpdateReady((version) => {
+  delete $('version').dataset.progress;
+  $('update').textContent = `Aggiorna a v${version}`;
+  $('update').title = "Riavvia FollowUp con la nuova versione";
+  $('update').hidden = false;
+});
+$('update').addEventListener('click', () => window.api.installUpdate());
 refresh();

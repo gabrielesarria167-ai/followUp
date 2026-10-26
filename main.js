@@ -173,8 +173,22 @@ app.whenReady().then(() => {
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
   win.loadFile(join(import.meta.dirname, 'index.html'));
-  if (app.isPackaged) electronUpdater.autoUpdater.checkForUpdatesAndNotify().catch(() => {}); // offline is fine
+  if (app.isPackaged) win.webContents.once('did-finish-load', checkForUpdates);
 });
+
+// Downloads in the background and installs when the app closes; the footer offers to restart sooner.
+// Checked after the page loads, so a download cached by an earlier run still reaches the footer.
+function checkForUpdates() {
+  const { autoUpdater } = electronUpdater;
+  autoUpdater.on('download-progress', ({ percent }) => win?.webContents.send('updateProgress', Math.floor(percent)));
+  autoUpdater.on('update-downloaded', ({ version }) => win?.webContents.send('updateReady', version));
+  autoUpdater.on('error', (err) => console.error('update:', err.message)); // offline is fine
+  autoUpdater.checkForUpdates().catch(() => {});
+}
+
+ipcMain.handle('version', () => app.getVersion());
+
+ipcMain.handle('installUpdate',() => electronUpdater.autoUpdater.quitAndInstall(true, true));
 
 app.on('second-instance', () => {
   if (win?.isMinimized()) win.restore();
