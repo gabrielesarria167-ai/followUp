@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import electronUpdater from 'electron-updater';
-import { existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { loadInvoices, shopVats } from './db.js';
 import { checkLicense } from './license.js';
 import { buildMessage, monthView, normalizePhone, openStore, phoneKey, rangeView, waUrl, yearView } from './store.js';
@@ -12,18 +12,33 @@ let invoices = [];
 let dbError = null;
 let shop = { vats: [], latest: null }; // what the license is checked against
 
-// Installed app: invoices live in the user profile (data/wcFatture.mdb), so app updates never overwrite them.
-// data/ESEMPIO marks the client preview: only then are phones invented. Delete it with the real data.
+// Fallback when the installer saved no path (dev runs): data/wcFatture.mdb.
+// An ESEMPIO file next to the archive marks the client preview: only then are phones invented. Delete it with the real data.
 const dataDir = () => join(app.isPackaged ? app.getPath('userData') : import.meta.dirname, 'data');
 
-// The archive picked on the lock screen, else the one inside FollowUp.
-const dbPath = () => store.data.dbPath ?? join(dataDir(), 'wcFatture.mdb');
+// Written by the installer page (build/installer.nsh): per-user installs in the profile, all-users ones in ProgramData.
+function configuredDbPath() {
+  const files = [
+    join(app.getPath('userData'), 'followup.ini'),
+    join(process.env.PROGRAMDATA ?? 'C:\\ProgramData', 'FollowUp', 'followup.ini'),
+  ];
+  for (const file of files.filter((f) => existsSync(f))) {
+    const buf = readFileSync(file);
+    const text = buf[0] === 0xff && buf[1] === 0xfe ? buf.toString('utf16le', 2) : buf.toString('utf8');
+    const path = text.match(/^\s*path\s*=\s*(.+?)\s*$/m)?.[1];
+    if (path) return path;
+  }
+  return null;
+}
+
+// The archive picked on the lock screen (the latest choice), else the installer's, else the one inside FollowUp.
+const dbPath = () => store.data.dbPath ?? configuredDbPath() ?? join(dataDir(), 'wcFatture.mdb');
 
 const checkKey = (key) => checkLicense(key, { ...shop, now: Date.now(), lastSeen: store.data.lastSeen });
 
 function readDb() {
   const path = dbPath();
-  const sample = existsSync(join(dataDir(), 'ESEMPIO'));
+  const sample = existsSync(join(dirname(path), 'ESEMPIO'));
   let all = [];
   try {
     all = loadInvoices(path, { samplePhones: sample });
@@ -31,7 +46,7 @@ function readDb() {
     dbError = null;
   } catch (err) {
     shop = { vats: [], latest: null };
-    dbError = existsSync(path) ? `Impossibile leggere ${path}: ${err.message}` : `Archivio fatture mancante: ${path}`;
+    dbError = existsSync(path) ? `Impossibile leggere ${path}: ${err.message}` : `Archivio fatture mancante: ${path}. Reinstalla FollowUp per selezionarlo`;
   }
   const license = checkKey(store.data.license);
   store.update((d) => { d.lastSeen = Math.max(d.lastSeen ?? 0, Date.now()); });

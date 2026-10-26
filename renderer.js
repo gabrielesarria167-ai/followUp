@@ -60,6 +60,7 @@ async function refresh(meta) {
   if (!years.includes(year)) {
     year = meta.latest ? Number(meta.latest.slice(0, 4)) : years[0];
     month = meta.latest ? Number(meta.latest.slice(5, 7)) : new Date().getMonth() + 1;
+    clearRange();
   }
   $('year').value = year;
   await render();
@@ -85,23 +86,31 @@ function showLock(open) {
   if (open) $('key').focus();
 }
 
-// A Dal/al date replaces the selected month until cleared.
-const ranged = () => !!($('from').value || $('to').value);
+// Dal/al pick a span of days inside the selected month; untouched, they cover the whole month.
+const daysIn = () => new Date(year, month, 0).getDate();
+const iso = (day) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+const span = () => [Number($('from').value), Number($('to').value)];
+const ranged = () => { const [from, to] = span(); return from > 1 || to < daysIn(); };
 
 function periodTitle() {
-  if (!ranged()) return `${MONTHS[month - 1]} ${year}`;
-  const [from, to] = [$('from').value, $('to').value];
-  return from && to ? `Dal ${fmtDate(from)} al ${fmtDate(to)}` : from ? `Dal ${fmtDate(from)}` : `Fino al ${fmtDate(to)}`;
+  const name = `${MONTHS[month - 1]} ${year}`;
+  if (!ranged()) return name;
+  const [from, to] = span();
+  return from === to ? `${from} ${name.toLowerCase()}` : `Dal ${from} al ${to} ${name.toLowerCase()}`;
 }
 
+// Rebuilds the day lists for the current month and selects all of it.
 function clearRange() {
-  $('from').value = $('to').value = $('to').min = '';
+  const days = Array.from({ length: daysIn() }, (_, i) => i + 1);
+  for (const id of ['from', 'to']) $(id).replaceChildren(...days.map((d) => el('option', { value: d, textContent: d })));
+  $('from').value = 1;
+  $('to').value = days.length;
 }
 
 async function render() {
   const [months, list] = await Promise.all([
     window.api.year(year),
-    ranged() ? window.api.range($('from').value, $('to').value) : window.api.month(year, month),
+    ranged() ? window.api.range(...span().map(iso)) : window.api.month(year, month),
   ]);
   rows = list;
   if (pinned && !rows.some(PINS[pinned])) pinned = null; // e.g. another month: nothing left to pin
@@ -130,7 +139,7 @@ function renderMonths(months) {
       className: `month${m.total && !m.open ? ' closed' : ''}`,
       disabled: !m.total,
     }, el('span', { textContent: MONTHS[i] }), el('small', { textContent: m.open }));
-    b.setAttribute('aria-current', String(!ranged() && i + 1 === month));
+    b.setAttribute('aria-current', String(i + 1 === month));
     b.addEventListener('click', () => { month = i + 1; selectedKey = null; clearRange(); render(); });
     return b;
   }));
@@ -163,8 +172,8 @@ function renderList() {
   $('table-box').hidden = !rows.length;
   $('empty').hidden = !!rows.length;
   $('empty').textContent = $('status').classList.contains('error')
-    ? 'Nessun dato: manca l\'archivio fatture nella cartella data di FollowUp.'
-    : ranged() ? 'Nessuna fattura in questo periodo.'
+    ? 'Nessun dato: archivio fatture non trovato. Reinstalla FollowUp e seleziona wcFatture.mdb.'
+    : ranged() ? 'Nessuna fattura in questi giorni.'
     : `Nessuna fattura da contattare in ${MONTHS[month - 1].toLowerCase()} ${year}.`;
   $('rows').replaceChildren(...rows.map(row));
 }
@@ -277,9 +286,9 @@ function action(text, className, run, disabled = false) {
 }
 
 $('year').addEventListener('change', () => { year = Number($('year').value); selectedKey = null; clearRange(); render(); });
-for (const id of ['from', 'to']) {
-  $(id).addEventListener('change', () => { $('to').min = $('from').value; selectedKey = null; render(); });
-}
+// The other end follows so the span never runs backwards.
+$('from').addEventListener('change', () => { if (span()[1] < span()[0]) $('to').value = $('from').value; selectedKey = null; render(); });
+$('to').addEventListener('change', () => { if (span()[0] > span()[1]) $('from').value = $('to').value; selectedKey = null; render(); });
 $('range-clear').addEventListener('click', () => { clearRange(); selectedKey = null; render(); });
 $('refresh').addEventListener('click', () => refresh());
 $('renew').addEventListener('click', () => showLock(true));

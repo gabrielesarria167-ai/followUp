@@ -1,14 +1,15 @@
 {
   "name": "followup",
   "productName": "FollowUp",
-  "version": "0.1.1",
+  "version": "0.2.2",
   "description": "Follow-up WhatsApp per le fatture Wincar",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron .",
     "test": "node --test",
-    "dist": "electron-builder --win nsis --x64"
+    "dist": "electron-builder --win nsis --x64",
+    "icons": "electron scripts/render-icon.cjs assets/icon.svg assets/icon.png build/icon.ico"
   },
   "build": {
     "appId": "it.followup.app",
@@ -29,11 +30,12 @@
     },
     "win": {
       "target": "nsis",
-      "icon": "assets/icon.png"
+      "icon": "build/icon.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "${productName}-Setup.${ext}"
     },
     "publish": [
       {

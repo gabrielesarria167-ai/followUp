@@ -147,11 +147,12 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
 .list-head h1 .ico { width: 32px; height: 32px; color: #7fa8e8; }
 .range { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; color: var(--muted); }
 .range label { display: inline-flex; align-items: center; gap: 12px; }
-.range input {
-  min-height: 44px; padding: 0 12px; border: 1px solid var(--line-strong); border-radius: 8px;
-  background: var(--surface); color: var(--text); font-size: 14px;
+.range select {
+  appearance: none; min-height: 44px; padding: 0 36px 0 14px; border: 1px solid var(--line-strong); border-radius: 8px;
+  background: var(--surface) url("assets/chevron.svg") no-repeat right 14px center / 10px;
+  color: var(--text); font-size: 14px; font-variant-numeric: tabular-nums;
 }
-.range input:focus-visible { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 30%, transparent); }
+.range select:focus-visible { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 30%, transparent); }
 .table-box { isolation: isolate; overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: color-mix(in srgb, var(--surface) 85%, transparent); }
 table { width: 100%; min-width: 640px; border-collapse: separate; border-spacing: 0; }
 th {
