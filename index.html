@@ -2,18 +2,25 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:">
   <title>FollowUp</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="bar">
     <span class="brand"><img src="assets/logo-mark.svg" alt="" width="34" height="32"><span>Follow<span class="brand-up">Up</span></span></span>
+    <div id="company" class="company" hidden>
+      <button id="logo" class="company-logo" type="button" title="Scegli il logo aziendale" aria-label="Scegli il logo aziendale"></button>
+      <span><small>Azienda</small><strong id="company-name"></strong></span>
+    </div>
     <div id="license" class="license-chip" hidden>
       <span class="ico i-calendar"></span>
       <span><strong id="license-days"></strong><small id="license-until"></small></span>
     </div>
-    <span id="status" class="status" role="status"></span>
+    <label class="search">
+      <span class="ico i-search"></span>
+      <input id="search" type="search" placeholder="Cerca cliente o veicolo…" aria-label="Cerca cliente o veicolo" autocomplete="off" spellcheck="false">
+    </label>
     <button id="renew" class="link" hidden>Rinnova</button>
     <button id="refresh" class="btn">
       <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -67,6 +74,8 @@
 
     <aside id="detail" class="detail" aria-label="Fattura selezionata" hidden></aside>
   </div>
+
+  <footer class="foot"><span id="status" class="status" role="status"></span></footer>
 
   <script src="renderer.js"></script>
 </body>

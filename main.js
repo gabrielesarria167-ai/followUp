@@ -1,10 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import electronUpdater from 'electron-updater';
-import { existsSync, readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { copyFileSync, existsSync, readFileSync } from 'node:fs';
+import { dirname, extname, join } from 'node:path';
 import { loadInvoices, shopVats } from './db.js';
 import { checkLicense } from './license.js';
-import { buildMessage, monthView, normalizePhone, openStore, phoneKey, rangeView, waUrl, yearView } from './store.js';
+import { buildMessage, monthView, normalizePhone, openStore, phoneKey, rangeView, searchView, waUrl, yearView } from './store.js';
 
 let store;
 let win;
@@ -58,6 +58,7 @@ function readDb() {
     years: [...new Set(invoices.map((i) => Number(i.date.slice(0, 4))))],
     latest: invoices[0]?.date ?? null,
     license: { ...license, needsDb: !shop.vats.length },
+    logo: logoDataUrl(),
   };
 }
 
@@ -79,9 +80,37 @@ ipcMain.handle('pickDb', async () => {
   return readDb();
 });
 
+const LOGO_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+
+// Sent as a data URL: the page may only load images from itself or inline.
+function logoDataUrl() {
+  const name = store.data.logo;
+  if (!name) return null;
+  try {
+    return `data:${LOGO_TYPES[extname(name)]};base64,${readFileSync(join(app.getPath('userData'), name)).toString('base64')}`;
+  } catch {
+    return null; // deleted by hand: back to the building icon
+  }
+}
+
+// Copied into FollowUp's own folder, so the logo stays if the original is moved or deleted.
+ipcMain.handle('pickLogo', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(win, {
+    title: 'Logo aziendale', properties: ['openFile'], filters: [{ name: 'Immagini', extensions: ['png', 'jpg', 'jpeg', 'webp', 'svg'] }],
+  });
+  const ext = extname(filePaths[0] ?? '').toLowerCase();
+  if (!canceled && LOGO_TYPES[ext]) {
+    copyFileSync(filePaths[0], join(app.getPath('userData'), `logo${ext}`));
+    store.update((d) => { d.logo = `logo${ext}`; });
+  }
+  return readDb();
+});
+
 ipcMain.handle('month', (_e, year, month) => monthView(invoices, store.data, year, month, Date.now()));
 
 ipcMain.handle('range', (_e, from, to) => rangeView(invoices, store.data, String(from), String(to), Date.now()));
+
+ipcMain.handle('search', (_e, query) => searchView(invoices, store.data, String(query ?? ''), Date.now()));
 
 ipcMain.handle('year', (_e, year) => yearView(invoices, store.data, year, Date.now()));
 

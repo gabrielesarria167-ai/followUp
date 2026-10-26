@@ -86,6 +86,13 @@ function periodView(invoices, data, inPeriod, now) {
     });
 }
 
+// Every visible invoice, any period, whose client, vehicle or plate contains each word of the query.
+export function searchView(invoices, data, query, now) {
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  return rangeView(invoices, data, '', '', now)
+    .filter((r) => words.every((w) => [r.client, r.vehicle, r.plate].join(' ').toLowerCase().includes(w)));
+}
+
 // Per-month totals for the month list: all invoices, and those still to contact.
 export const yearView = (invoices, data, year, now) => Array.from({ length: 12 }, (_, i) => ({
   total: invoices.filter((inv) => inv.date.startsWith(`${year}-${String(i + 1).padStart(2, '0')}`)).length,

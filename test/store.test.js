@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isHidden, normalizePhone, waUrl, buildMessage, monthView, rangeView, yearView, openStore, phoneKey } from '../store.js';
+import { isHidden, normalizePhone, waUrl, buildMessage, monthView, rangeView, searchView, yearView, openStore, phoneKey } from '../store.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -80,6 +80,23 @@ test('monthView: phone precedence, state, hiding', () => {
   assert.deepEqual(year[6], { total: 4, open: 2 }); // d is hidden but still counts toward the total
   assert.deepEqual(year[5], { total: 1, open: 1 });
   assert.deepEqual(year[0], { total: 0, open: 0 });
+});
+
+test('search matches every word in client, vehicle or plate, across periods', () => {
+  const now = Date.now();
+  const inv = (key, date, client, vehicle, plate) => ({ key, date, number: key, clientCode: key, telefo: '', client, vehicle, plate });
+  const invoices = [
+    inv('a', '2026-08-10', 'AUTOTORINO SPA', 'TOYOTA Yaris Cross', 'GZ471TS'),
+    inv('b', '2025-03-02', 'ROSSI MARIO', 'FIAT Panda', 'AB123CD'),
+    inv('c', '2026-01-05', 'AUTOTORINO SPA', 'FIAT Punto', 'EF456GH'),
+  ];
+  const data = { phones: {}, states: { c: { status: 'messaged', at: now - 8 * DAY } } };
+  const keys = (q) => searchView(invoices, data, q, now).map((r) => r.key);
+  assert.deepEqual(keys('autotorino'), ['a']); // c matches but is hidden
+  assert.deepEqual(keys('fiat'), ['b']);
+  assert.deepEqual(keys('yaris autotorino'), ['a']);
+  assert.deepEqual(keys('gz 471'), ['a']);
+  assert.deepEqual(keys('panda autotorino'), []);
 });
 
 test('client code 0 keeps a saved phone on its own invoice', () => {

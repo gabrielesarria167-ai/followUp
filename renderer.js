@@ -45,8 +45,13 @@ async function refresh(meta) {
   $('license').classList.toggle('expiring', expiring);
   if (license.ok) {
     $('license-days').textContent = `${license.daysLeft} ${license.daysLeft === 1 ? 'giorno disponibile' : 'giorni disponibili'}`;
-    $('license-until').textContent = [license.name, `Valida fino al ${fmtDate(license.expires)}`].filter(Boolean).join(' · ');
+    $('license-until').textContent = `Valida fino al ${fmtDate(license.expires)}`;
   }
+  // The licensed company; its logo replaces the building icon once one is chosen.
+  $('company').hidden = !license.ok || !license.name;
+  $('company-name').textContent = license.name ?? '';
+  $('logo').classList.toggle('has-logo', !!meta.logo);
+  $('logo').replaceChildren(meta.logo ? el('img', { src: meta.logo, alt: '' }) : icon('building'));
   $('status').textContent = meta.error ?? [
     meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura',
     meta.sample && 'Anteprima: numeri di telefono di esempio',
@@ -86,6 +91,10 @@ function showLock(open) {
   if (open) $('key').focus();
 }
 
+// Two letters or more search every period; the month and day filters wait until the box is cleared.
+const query = () => $('search').value.trim();
+const searching = () => query().length >= 2;
+
 // Dal/al pick a span of days inside the selected month; untouched, they cover the whole month.
 const daysIn = () => new Date(year, month, 0).getDate();
 const iso = (day) => `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
@@ -93,6 +102,7 @@ const span = () => [Number($('from').value), Number($('to').value)];
 const ranged = () => { const [from, to] = span(); return from > 1 || to < daysIn(); };
 
 function periodTitle() {
+  if (searching()) return `Risultati per «${query()}»`;
   const name = `${MONTHS[month - 1]} ${year}`;
   if (!ranged()) return name;
   const [from, to] = span();
@@ -108,10 +118,12 @@ function clearRange() {
 }
 
 async function render() {
+  const q = searching() ? query() : null;
   const [months, list] = await Promise.all([
     window.api.year(year),
-    ranged() ? window.api.range(...span().map(iso)) : window.api.month(year, month),
+    q ? window.api.search(q) : ranged() ? window.api.range(...span().map(iso)) : window.api.month(year, month),
   ]);
+  if (q !== (searching() ? query() : null)) return; // typed on while waiting: a newer render owns the screen
   rows = list;
   if (pinned && !rows.some(PINS[pinned])) pinned = null; // e.g. another month: nothing left to pin
   sortRows();
@@ -139,8 +151,8 @@ function renderMonths(months) {
       className: `month${m.total && !m.open ? ' closed' : ''}`,
       disabled: !m.total,
     }, el('span', { textContent: MONTHS[i] }), el('small', { textContent: m.open }));
-    b.setAttribute('aria-current', String(i + 1 === month));
-    b.addEventListener('click', () => { month = i + 1; selectedKey = null; clearRange(); render(); });
+    b.setAttribute('aria-current', String(!searching() && i + 1 === month));
+    b.addEventListener('click', () => { month = i + 1; selectedKey = null; $('search').value = ''; clearRange(); render(); });
     return b;
   }));
 }
@@ -151,6 +163,7 @@ function renderList() {
   const messaged = rows.filter((r) => r.status === 'messaged').length;
   $('title').textContent = periodTitle();
   $('range-clear').hidden = !ranged();
+  document.querySelector('.range').hidden = searching();
   // A pill with a pin is a toggle button: pressing it again restores the plain sort.
   const pill = (color, text, pin) => {
     if (!pin) return el('span', { className: `pill ${color}`, textContent: text });
@@ -160,7 +173,7 @@ function renderList() {
     return b;
   };
   $('summary').replaceChildren(...(rows.length && !pending.length
-    ? [pill('green', ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`, 'messaged')]
+    ? [pill('green', searching() ? 'Tutte contattate' : ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`, 'messaged')]
     : [
       pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`, 'pending'),
       messaged && pill('green', `${messaged} contattate`, 'messaged'), noPhone && pill('red', `${noPhone} senza telefono`, 'nophone'),
@@ -173,6 +186,7 @@ function renderList() {
   $('empty').hidden = !!rows.length;
   $('empty').textContent = $('status').classList.contains('error')
     ? 'Nessun dato: archivio fatture non trovato. Reinstalla FollowUp e seleziona wcFatture.mdb.'
+    : searching() ? `Nessuna fattura trovata per «${query()}».`
     : ranged() ? 'Nessuna fattura in questi giorni.'
     : `Nessuna fattura da contattare in ${MONTHS[month - 1].toLowerCase()} ${year}.`;
   $('rows').replaceChildren(...rows.map(row));
@@ -188,7 +202,7 @@ function row(r) {
   const [cls, label] = stateOf(r);
   const client = el('button', { className: 'client', textContent: titleCase(r.client) || '—' });
   const tr = el('tr', { className: isPending(r) ? '' : 'is-done' },
-    el('td', { className: 'nowrap', textContent: fmtShort(r.date) }),
+    el('td', { className: 'nowrap', textContent: searching() ? fmtDate(r.date) : fmtShort(r.date) }), // results span years
     el('td', { className: 'nowrap', textContent: r.number }),
     el('td', {}, client, el('small', { textContent: titleCase(r.place) })),
     el('td', {}, el('div', { textContent: r.car || '—' }), el('small', { textContent: r.plate })),
@@ -285,7 +299,8 @@ function action(text, className, run, disabled = false) {
   return b;
 }
 
-$('year').addEventListener('change', () => { year = Number($('year').value); selectedKey = null; clearRange(); render(); });
+$('year').addEventListener('change', () => { year = Number($('year').value); selectedKey = null; $('search').value = ''; clearRange(); render(); });
+$('search').addEventListener('input', () => { selectedKey = null; render(); });
 // The other end follows so the span never runs backwards.
 $('from').addEventListener('change', () => { if (span()[1] < span()[0]) $('to').value = $('from').value; selectedKey = null; render(); });
 $('to').addEventListener('change', () => { if (span()[0] > span()[1]) $('from').value = $('to').value; selectedKey = null; render(); });
@@ -294,6 +309,7 @@ $('refresh').addEventListener('click', () => refresh());
 $('renew').addEventListener('click', () => showLock(true));
 $('lock-close').addEventListener('click', () => showLock(false));
 $('pick-db').addEventListener('click', async () => refresh(await window.api.pickDb()));
+$('logo').addEventListener('click', async () => refresh(await window.api.pickLogo()));
 $('lock-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const meta = await window.api.activate($('key').value);
