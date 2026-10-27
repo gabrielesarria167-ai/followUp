@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { generateKeyPairSync } from 'node:crypto';
-import { checkLicense, signLicense } from '../license.js';
+import { checkLicense, keyId, signLicense } from '../license.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 const { publicKey, privateKey } = generateKeyPairSync('ed25519');
@@ -30,6 +30,7 @@ test('bad keys are rejected with a reason', () => {
     expired: [check(key, { now: new Date('2027-10-27T00:01').getTime() }), /scaduta il 26\/10\/2027/],
     'clock set back': [check(key, { lastSeen: now + 2 * DAY }), /data del PC/],
     'invoices past expiry': [check(key, { latest: '2027-11-02' }), /scaduta/],
+    revoked: [check(key, { revoked: [keyId(key)] }), /revocata/],
   };
   for (const [name, [r, reason]] of Object.entries(cases)) {
     assert.equal(r.ok, false, name);
