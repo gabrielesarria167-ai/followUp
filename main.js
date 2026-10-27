@@ -4,7 +4,7 @@ import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:f
 import { dirname, extname, join } from 'node:path';
 import { loadInvoices, shopVats } from './db.js';
 import { checkLicense } from './license.js';
-import { monthView, normalizePhone, openStore, phoneKey, rangeView, searchView, templateList, TEMPLATES, waUrl, yearView } from './store.js';
+import { contactKey, mailUrl, monthView, normalizeEmail, normalizePhone, openStore, rangeView, searchView, templateList, TEMPLATES, waUrl, yearView } from './store.js';
 
 let store;
 let win;
@@ -148,15 +148,18 @@ ipcMain.handle('search', (_e, query) => searchView(invoices, store.data, String(
 
 ipcMain.handle('year', (_e, year) => yearView(invoices, store.data, year, Date.now()));
 
-ipcMain.handle('setPhone', (_e, key, text) => {
+// A phone or email as typed, kept for the client; an empty box forgets it.
+const setContact = (list) => (_e, key, text) => {
   const inv = invoices.find((i) => i.key === key);
   if (!inv) return;
   const t = String(text ?? '').trim();
-  store.update(({ phones }) => {
-    if (t) phones[phoneKey(inv)] = t;
-    else delete phones[phoneKey(inv)];
+  store.update((data) => {
+    if (t) data[list][contactKey(inv)] = t;
+    else delete data[list][contactKey(inv)];
   });
-});
+};
+ipcMain.handle('setPhone', setContact('phones'));
+ipcMain.handle('setEmail', setContact('emails'));
 
 ipcMain.handle('setStatus', (_e, key, status) => {
   store.update(({ states }) => {
@@ -171,16 +174,25 @@ ipcMain.handle('remove', (_e, key) => {
 });
 
 // The text is the panel's message box: a template filled for this invoice, maybe edited.
-ipcMain.handle('openWhatsApp', async (_e, key, text) => {
+// The URL is always built here, so only wa.me and mailto links ever reach the OS.
+async function send(key, text, toUrl) {
   const inv = invoices.find((i) => i.key === key);
   const message = String(text ?? '').trim().slice(0, MESSAGE_MAX);
-  if (!inv || !message) return;
-  const { phone } = normalizePhone(store.data.phones[phoneKey(inv)] ?? inv.telefo);
-  if (!phone) return;
-  // The URL is always built here, so only wa.me links ever reach the OS.
-  await shell.openExternal(waUrl(phone, message));
+  const url = inv && message && toUrl(inv, message);
+  if (!url) return;
+  await shell.openExternal(url);
   store.update(({ states }) => { states[key] = { status: 'messaged', at: Date.now() }; });
-});
+}
+
+ipcMain.handle('openWhatsApp', (_e, key, text) => send(key, text, (inv, message) => {
+  const { phone } = normalizePhone(store.data.phones[contactKey(inv)] ?? inv.telefo);
+  return phone && waUrl(phone, message);
+}));
+
+ipcMain.handle('openEmail', (_e, key, text) => send(key, text, (inv, message) => {
+  const email = normalizeEmail(store.data.emails[contactKey(inv)]);
+  return email && mailUrl(email, `Fattura n. ${inv.number} del ${inv.date.split('-').reverse().join('/')}`, message);
+}));
 
 // Two windows would each keep their own copy of followup.json and overwrite each other's saves.
 if (!app.requestSingleInstanceLock()) app.quit();
@@ -219,6 +231,9 @@ function checkForUpdates() {
 }
 
 ipcMain.handle('version', () => app.getVersion());
+
+// The OS picker types into the focused field; Windows and macOS only.
+ipcMain.handle('showEmojiPanel', () => app.showEmojiPanel());
 
 ipcMain.handle('installUpdate',() => electronUpdater.autoUpdater.quitAndInstall(true, true));
 

@@ -239,13 +239,19 @@ function renderDetail() {
   $('detail').hidden = !r;
   if (!r) return;
 
-  const phone = el('input', { type: 'tel', value: r.phoneText, placeholder: 'Aggiungi numero' });
-  phone.addEventListener('change', async () => {
-    await save(() => window.api.setPhone(r.key, phone.value));
-    // Leaving the box by clicking a panel button: that button redraws itself, and redrawing now would eat its click.
-    if (failed || !$('detail').contains(document.activeElement)) render();
-  });
-  phone.addEventListener('keydown', (e) => { if (e.key === 'Enter') phone.blur(); });
+  // A contact box: saved for the client when left; Enter leaves it.
+  const contact = (type, value, placeholder, set) => {
+    const input = el('input', { type, value, placeholder });
+    input.addEventListener('change', async () => {
+      await save(() => set(r.key, input.value));
+      // Leaving the box by clicking a panel button: that button redraws itself, and redrawing now would eat its click.
+      if (failed || !$('detail').contains(document.activeElement)) render();
+    });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
+    return input;
+  };
+  const phone = contact('tel', r.phoneText, 'Aggiungi numero', window.api.setPhone);
+  const email = contact('email', r.emailText, 'Aggiungi email', window.api.setEmail);
   const [hint, warn] =
     r.phoneText && !r.phone ? ['Numero non valido.', true]
     : !r.phoneText ? ['Aggiungi un numero per scrivere su WhatsApp.', true]
@@ -260,7 +266,7 @@ function renderDetail() {
     b.addEventListener('click', () => {
       tplId = t.id; draft = null; renderDetail();
       $('detail').querySelector('.template[aria-pressed="true"]').focus();
-      $('detail').querySelector('textarea.message').parentElement.scrollIntoView({ block: 'nearest' }); // the new text, and its warning, in view
+      $('detail').querySelector('textarea.message').closest('.field').scrollIntoView({ block: 'nearest' }); // the new text, and its warning, in view
     });
     return b;
   };
@@ -271,24 +277,36 @@ function renderDetail() {
     value: draft?.key === r.key ? draft.text : fill(tpl.text, r),
   });
   const todo = el('span', { className: 'hint warn', textContent: 'Completa le parti tra [parentesi quadre], qui o per sempre con Modifica.' });
+  const emoji = el('button', { type: 'button', className: 'emoji', title: 'Inserisci emoji' }, icon('smile'));
+  emoji.setAttribute('aria-label', 'Inserisci emoji');
+  emoji.addEventListener('click', () => { text.focus(); window.api.showEmojiPanel(); });
+  const count = el('span', { className: 'count' });
 
   const next = nextPending();
-  const nextBtn = el('button', { className: 'btn', textContent: 'Successiva', disabled: !next });
+  const nextBtn = el('button', { className: 'btn btn-blue', textContent: 'Successiva', disabled: !next });
   nextBtn.addEventListener('click', () => select(next.key));
-  const wa = action('Apri WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key, text.value), !r.phone);
+  const wa = action('Invia su WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key, text.value), !r.phone);
   wa.prepend(icon('whatsapp'));
   if (!r.phone) wa.title = 'Aggiungi prima un numero di telefono';
-  const check = () => { todo.hidden = !/\[[^\]\n]*\]/.test(text.value); wa.disabled = !r.phone || !text.value.trim(); };
+  const mail = action('Invia Email', 'btn btn-mail btn-blue', () => window.api.openEmail(r.key, text.value), !r.email);
+  mail.prepend(icon('mail'));
+  if (!r.email) mail.title = 'Aggiungi prima un indirizzo email';
+  const check = () => {
+    todo.hidden = !/\[[^\]\n]*\]/.test(text.value);
+    wa.disabled = !r.phone || !text.value.trim();
+    mail.disabled = !r.email || !text.value.trim();
+    count.textContent = `${text.value.length}/${text.maxLength}`;
+  };
   text.addEventListener('input', () => { draft = { key: r.key, text: text.value }; check(); });
   check();
   const actions = isPending(r)
-    ? [wa,
-       el('div', { className: 'actions-row' }, action('Elimina', 'btn', () => window.api.setStatus(r.key, 'dismissed')), nextBtn)]
+    ? [wa, mail,
+       el('div', { className: 'actions-row' }, action('Elimina', 'btn btn-red', () => window.api.setStatus(r.key, 'dismissed')), nextBtn)]
     : [el('div', { className: 'closed-note' },
         el('span', { textContent: `${r.status === 'messaged' ? 'Contattato' : 'Eliminata'} il ${fmtTs(r.at)}` }),
         action('Annulla', 'link', () => window.api.setStatus(r.key, null))),
        r.status === 'messaged'
-         ? el('div', { className: 'actions-row' }, action('Elimina', 'btn', () => window.api.remove(r.key)), nextBtn)
+         ? el('div', { className: 'actions-row' }, action('Elimina', 'btn btn-red', () => window.api.remove(r.key)), nextBtn)
          : nextBtn];
 
   // A tall panel scrolls its body; the actions stay at the bottom, always in reach.
@@ -306,11 +324,15 @@ function renderDetail() {
     el('label', { className: 'field' },
       el('span', {}, icon('phone'), 'Telefono'), phone,
       el('span', { className: `hint${warn ? ' warn' : ''}`, textContent: hint })),
+    el('label', { className: 'field' },
+      el('span', {}, icon('mail'), 'Email'), email,
+      r.emailText && !r.email && el('span', { className: 'hint warn', textContent: 'Email non valida.' })),
     // Only what is still to send gets a message.
     isPending(r) && el('div', { className: 'field' },
       el('span', {}, icon('file-text'), 'Template messaggi', edit),
       el('div', { className: 'templates' }, ...templates.map(choose))),
-    isPending(r) && el('label', { className: 'field' }, el('span', {}, icon('message'), 'Messaggio libero'), text, todo)),
+    isPending(r) && el('label', { className: 'field' }, el('span', {}, icon('message'), 'Messaggio libero'),
+      el('div', { className: 'compose' }, text, el('div', { className: 'compose-foot' }, emoji, count)), todo)),
     el('div', { className: 'actions' }, ...actions,
       failed && el('p', { className: 'hint warn', role: 'alert', textContent: 'Operazione non riuscita. Riprova.' })),
   );

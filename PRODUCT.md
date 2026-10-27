@@ -34,7 +34,7 @@ FollowUp isn't a CRM or a marketing tool. It's a single-purpose after-work check
 ## Brand Commitments
 The name is **FollowUp**. The logo is still to be decided, and there's no garage branding to carry yet.
 
-The user's standing preference: **simplicity and a natural, familiar feel come before visual design.** Use a dark theme. Layout: month list on the left, invoices in the middle, a detail panel for the selected invoice on the right (message preview, Apri WhatsApp, Elimina, Successiva).
+The user's standing preference: **simplicity and a natural, familiar feel come before visual design.** Use a dark theme. Layout: month list on the left, invoices in the middle, a detail panel for the selected invoice on the right (message preview, Invia su WhatsApp, Elimina, Successiva).
 
 ## Evidence on Hand
 Burner sample data: `FollowUp_handoff/tesfat_sample.json`, `data/wcFatture.mdb` (3,302 invoices from 2007–2026, real-looking Italian client names, vehicles and plates). In the sample, `F_TELEFO` is empty. The client's real data has the same structure.

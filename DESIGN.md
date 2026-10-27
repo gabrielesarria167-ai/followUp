@@ -18,6 +18,7 @@ colors:
   blue-hover: "#4a8ff8"
   yellow: "#f5c518"
   red: "#ef4444"
+  red-hover: "#f26464"
   brand: "#3ddc84"
 typography:
   title:
@@ -63,10 +64,10 @@ Simplicity still comes first. The color makes state readable at a glance; it isn
 
 Navy neutrals plus four signal colors. Each signal color has one meaning.
 
-- **Green** (green): done or go. Contattato, "completato", the selected month (bar and filled badge), the selected row, the license chip, and the Apri WhatsApp fill.
+- **Green** (green): done or go. Contattato, "completato", the selected month (bar and filled badge), the selected row, the license chip, and the Invia su WhatsApp fill.
 - **Yellow** (yellow): waiting. Da contattare, and the license chip when 30 days or fewer are left.
-- **Red** (red): blocked. Senza telefono, phone-field warnings, load errors, a rejected key.
-- **Blue** (blue): neutral info and primary action. The "N fatture" pill, the focus ring, text selection, and the Conferma button on the license screen.
+- **Red** (red): blocked or discarded. Senza telefono, phone-field warnings, load errors, a rejected key, and the Elimina fill.
+- **Blue** (blue): neutral info and primary action. The "N fatture" pill, the focus ring, text selection, and the Successiva, Conferma, Salva and update-button fills.
 - **Neutrals**:
   - bg is the page ground and recessed inputs.
   - surface is cards, the table, and outlined buttons.
@@ -77,7 +78,7 @@ Navy neutrals plus four signal colors. Each signal color has one meaning.
 ### Named Rules
 **The Pill Rule.** Every state uses the same pill: a 10px dot in the state color, a 14% tint fill, a 45% tint border, and text in the normal text color. In CSS this is `.pill` / `.state` driven by `--c`.
 
-**The Two Fills Rule.** Only two buttons are filled: Apri WhatsApp (green) and Conferma on the license screen (blue). Every other button is outlined on surface.
+**The Fills Rule.** Only the action buttons are filled: Invia su WhatsApp (green), Elimina (red), and Invia Email, Successiva, Conferma, Salva and the update button (blue). Every other button is outlined on surface.
 
 ## Typography
 
@@ -125,10 +126,10 @@ Icons in `assets/` are copied from Lucide (lucide-static 0.460.0, ISC) and Simpl
 - **Detail panel**:
   - an icon tile with the client name and place
   - Veicolo, Fattura, Pagamento and Totale rows, each with an icon
-  - the phone field
-  - while still to contact: the five message templates (the one in use wears the selected-row look; Modifica rewrites it) and the Messaggio libero box (recessed bg), filled from the template and editable
-  - full-width Apri WhatsApp
-  - Elimina and Successiva side by side
+  - the phone and email fields (email is typed in FollowUp: Wincar has none)
+  - while still to contact: the five message templates (the one in use wears the selected-row look; Modifica rewrites it) and the Messaggio libero box (recessed bg, emoji button and character count), filled from the template and editable
+  - full-width Invia su WhatsApp (green), then Invia Email (blue)
+  - Elimina (red) and Successiva (blue) side by side
   - once handled, a green tinted note with the Annulla link
 - **Logo tile** (header): the company logo on white, or the building icon. A click opens a small menu under it (Scegli immagine…, and Rimuovi logo once one is set): a surface card with a hairline, items tinted raised on hover.
 - **License chip** (header): the days left and the expiry date, green, or yellow when the license is expiring.
@@ -138,5 +139,5 @@ Icons in `assets/` are copied from Lucide (lucide-static 0.460.0, ISC) and Simpl
 ## Don'ts
 - Don't add features or chrome just because the mockup shows them. Add them one at a time when built.
 - Don't give one meaning two colors, or one color two meanings.
-- Don't fill buttons other than the two above.
+- Don't fill buttons other than the ones above.
 - Don't add a second typeface, uppercase labels or letter-spacing.

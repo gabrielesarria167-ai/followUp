@@ -4,7 +4,7 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // FollowUp's own state. Never stored in Wincar.
 export function openStore(file) {
-  let data = { phones: {}, states: {}, templates: {} };
+  let data = { phones: {}, emails: {}, states: {}, templates: {} };
   if (existsSync(file)) {
     try {
       data = { ...data, ...JSON.parse(readFileSync(file, 'utf8')) };
@@ -53,12 +53,19 @@ export function normalizePhone(text) {
 
 export const waUrl = (phone, text) => `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 
+// The first address in free text like "info@x.it; amm@x.it". No ? & % or spaces, so it can't add mailto fields.
+export const normalizeEmail = (text) => (text ?? '').match(/[\w.+-]+@[\w-]+(\.[\w-]+)*\.[a-z]{2,}/i)?.[0] ?? '';
+
+// shortcut: some mail programs cut mailto links past ~2000 characters; a long accented message can get there.
+export const mailUrl = (email, subject, text) =>
+  `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+
 // The ready messages. {…} is filled from the invoice (the panel does it); [between brackets] is for the owner
 // to replace, in the message or for good with Modifica. A fifth of invoices have no plate: the text must read without it.
 export const TEMPLATES = [
   {
     id: 'thanks', name: 'Ringraziamento per il lavoro svolto',
-    text: `Buongiorno {cliente}, la ringraziamo per averci affidato il suo veicolo {targa}. È stato un piacere occuparcene: per qualsiasi necessità siamo a sua disposizione. A presto!`,
+    text: `Buongiorno, la ringraziamo per averci affidato il suo veicolo {targa}. È stato un piacere occuparcene: per qualsiasi necessità siamo a sua disposizione. A presto!`,
   },
   {
     // Draft text from spec §7, the default. Waiting for client approval.
@@ -67,25 +74,26 @@ export const TEMPLATES = [
   },
   {
     id: 'payment', name: 'Promemoria pagamento',
-    text: `Buongiorno {cliente}, le ricordiamo che la fattura n. {fattura} del {data}, di {totale}, risulta ancora da saldare. Può pagare con bonifico all'IBAN [IBAN] oppure direttamente in officina. Se ha già provveduto, non tenga conto di questo messaggio. Grazie.`,
+    text: `Buongiorno, le ricordiamo che la fattura n. {fattura} del {data}, di {totale}, risulta ancora da saldare. Può pagare con bonifico all'IBAN [IBAN] oppure direttamente in officina. Se ha già provveduto, non tenga conto di questo messaggio. Grazie.`,
   },
   {
     id: 'review', name: 'Richiesta recensione',
-    text: `Buongiorno {cliente}, speriamo che sia soddisfatto del lavoro sul suo veicolo {targa}. Se le va di lasciarci una recensione, per noi sarebbe di grande aiuto: [link alla recensione]. Grazie mille!`,
+    text: `Buongiorno, speriamo che sia soddisfatto del lavoro sul suo veicolo {targa}. Se le va di lasciarci una recensione, per noi sarebbe di grande aiuto: [link alla recensione]. Grazie mille!`,
   },
   {
     id: 'offer', name: 'Offerta servizi aggiuntivi',
-    text: `Buongiorno {cliente}, grazie ancora per averci scelto. Per il suo veicolo {veicolo} le proponiamo anche [servizio offerto] a [prezzo o sconto]. Se le interessa, risponda a questo messaggio e fissiamo un appuntamento.`,
+    text: `Buongiorno, grazie ancora per averci scelto. Per il suo veicolo {veicolo} le proponiamo anche [servizio offerto] a [prezzo o sconto]. Se le interessa, risponda a questo messaggio e fissiamo un appuntamento.`,
   },
 ];
 
 // Each template in the owner's wording where they changed it; the original stays for Ripristina.
 export const templateList = (data) => TEMPLATES.map((t) => ({ ...t, original: t.text, text: data.templates[t.id] ?? t.text }));
 
-// Saved phones follow the client; code 0 is not a real client, so those stay on their own invoice.
-export const phoneKey = (inv) => inv.clientCode || inv.key;
+// Saved phones and emails follow the client; code 0 is not a real client, so those stay on their own invoice.
+export const contactKey = (inv) => inv.clientCode || inv.key;
 
-// Rows for one month, with the resolved phone and follow-up state. A phone saved in FollowUp wins over F_TELEFO.
+// Rows for one month, with the resolved contacts and follow-up state. A phone saved in FollowUp wins over F_TELEFO;
+// emails are only typed in FollowUp.
 export const monthView = (invoices, data, year, month, now) =>
   periodView(invoices, data, (date) => date.startsWith(`${year}-${String(month).padStart(2, '0')}`), now);
 
@@ -97,10 +105,11 @@ function periodView(invoices, data, inPeriod, now) {
   return invoices
     .filter((inv) => inPeriod(inv.date) && !isHidden(data.states[inv.key], now))
     .map((inv) => {
-      const phoneText = data.phones[phoneKey(inv)] ?? inv.telefo;
+      const phoneText = data.phones[contactKey(inv)] ?? inv.telefo;
+      const emailText = data.emails[contactKey(inv)] ?? '';
       const state = data.states[inv.key];
       return {
-        ...inv, phoneText, ...normalizePhone(phoneText),
+        ...inv, phoneText, ...normalizePhone(phoneText), emailText, email: normalizeEmail(emailText),
         status: state?.status ?? 'pending', at: state?.at ?? null,
       };
     });

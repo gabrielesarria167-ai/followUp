@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isHidden, normalizePhone, waUrl, templateList, TEMPLATES, monthView, rangeView, searchView, yearView, openStore, phoneKey } from '../store.js';
+import { isHidden, normalizePhone, waUrl, normalizeEmail, mailUrl, templateList, TEMPLATES, monthView, rangeView, searchView, yearView, openStore, contactKey } from '../store.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -39,6 +39,25 @@ test('waUrl encodes the text', () => {
   assert.equal(waUrl('393331234567', "com'è & ok?"), 'https://wa.me/393331234567?text=com\'%C3%A8%20%26%20ok%3F');
 });
 
+test('normalizeEmail keeps only a plain address', () => {
+  const cases = {
+    'info@rasottoflotte.it': 'info@rasottoflotte.it',
+    ' Mario.Rossi+auto@mail.co.uk ': 'Mario.Rossi+auto@mail.co.uk',
+    'info@x.it; amm@x.it': 'info@x.it',
+    'a@b.it?bcc=spy@evil.com': 'a@b.it',
+    'info@x': '',
+    'non ce l\'ha': '',
+    '': '',
+  };
+  for (const [input, email] of Object.entries(cases)) assert.equal(normalizeEmail(input), email, input);
+  assert.equal(normalizeEmail(undefined), '');
+});
+
+test('mailUrl encodes subject and body', () => {
+  assert.equal(mailUrl('a@b.it', 'Fattura n. 1', "com'è & ok?\nCiao"),
+    'mailto:a@b.it?subject=Fattura%20n.%201&body=com\'%C3%A8%20%26%20ok%3F%0ACiao');
+});
+
 test('templates: five, the owner\'s wording wins, the original stays', () => {
   assert.equal(TEMPLATES.length, 5);
   const list = templateList({ templates: { review: 'Grazie {cliente}!' } });
@@ -60,12 +79,14 @@ test('monthView: phone precedence, state, hiding', () => {
   ];
   const data = {
     phones: { 2: '340 9999999' },
+    emails: { 2: 'b@x.it' },
     states: { c: { status: 'messaged', at: now - DAY }, d: { status: 'dismissed', at: now - 8 * DAY } },
   };
   const rows = monthView(invoices, data, 2026, 7, now);
   assert.deepEqual(rows.map((r) => r.key), ['a', 'b', 'c']);
   assert.equal(rows[0].phone, '393331111111'); // from F_TELEFO
   assert.equal(rows[1].phone, '393409999999'); // saved phone wins
+  assert.deepEqual(rows.map((r) => r.email), ['', 'b@x.it', '']); // emails only from FollowUp
   assert.equal(rows[2].phone, '');
   assert.equal(rows[2].status, 'messaged');
   assert.equal(rows[0].status, 'pending');
@@ -91,7 +112,7 @@ test('search matches every word in client, vehicle or plate, across periods', ()
     inv('b', '2025-03-02', 'ROSSI MARIO', 'FIAT Panda', 'AB123CD'),
     inv('c', '2026-01-05', 'AUTOTORINO SPA', 'FIAT Punto', 'EF456GH'),
   ];
-  const data = { phones: {}, states: { c: { status: 'messaged', at: now - 8 * DAY } } };
+  const data = { phones: {}, emails: {}, states: { c: { status: 'messaged', at: now - 8 * DAY } } };
   const keys = (q) => searchView(invoices, data, q, now).map((r) => r.key);
   assert.deepEqual(keys('autotorino'), ['a']); // c matches but is hidden
   assert.deepEqual(keys('fiat'), ['b']);
@@ -105,7 +126,7 @@ test('client code 0 keeps a saved phone on its own invoice', () => {
     { key: 'f', date: '2026-07-06', number: 'f', clientCode: 0, telefo: '', plate: '' },
     { key: 'g', date: '2026-07-05', number: 'g', clientCode: 0, telefo: '', plate: '' },
   ];
-  const rows = monthView(invoices, { phones: { [phoneKey(invoices[0])]: '333 5555555' }, states: {} }, 2026, 7, Date.now());
+  const rows = monthView(invoices, { phones: { [contactKey(invoices[0])]: '333 5555555' }, emails: {}, states: {} }, 2026, 7, Date.now());
   assert.deepEqual(rows.map((r) => r.phone), ['393335555555', '']);
 });
 

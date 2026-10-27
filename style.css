@@ -16,6 +16,7 @@
   --blue-hover: #4a8ff8;
   --yellow: #f5c518;
   --red: #ef4444;
+  --red-hover: #f26464;
   --brand: #3ddc84;
   font: 14px/1.45 "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
   color: var(--text);
@@ -46,6 +47,8 @@ h1, h2, p { margin: 0; }
 .i-phone { --src: url("assets/phone.svg"); }
 .i-whatsapp { --src: url("assets/whatsapp.svg"); }
 .i-message { --src: url("assets/message.svg"); }
+.i-smile { --src: url("assets/smile.svg"); }
+.i-mail { --src: url("assets/mail.svg"); }
 .i-file-text { --src: url("assets/file-text.svg"); }
 .i-search { --src: url("assets/search.svg"); }
 .i-rotate { --src: url("assets/rotate.svg"); }
@@ -60,10 +63,19 @@ h1, h2, p { margin: 0; }
 }
 .btn:hover:not(:disabled) { background: var(--raised); border-color: #3a5078; }
 .btn:disabled { color: var(--off); cursor: not-allowed; }
-.btn-wa { min-height: 48px; border: 0; background: var(--green); color: #fff; font-size: 15px; font-weight: 600; }
-.btn-wa .ico { width: 22px; height: 22px; }
+/* The send buttons: taller, with a bigger icon. Invia Email takes the blue fill below. */
+.btn-wa, .btn-mail { min-height: 48px; font-size: 15px; }
+.btn-wa .ico, .btn-mail .ico { width: 22px; height: 22px; }
+.btn-wa { border: 0; background: var(--green); color: #fff; font-weight: 600; }
 .btn-wa:hover:not(:disabled) { background: var(--green-hover); }
 .btn-wa:disabled { background: var(--raised); color: var(--off); }
+/* Elimina and Successiva: filled like Invia su WhatsApp, each in its own color. */
+.btn-red, .btn-blue { border: 0; color: #fff; font-weight: 600; }
+.btn-red { background: var(--red); }
+.btn-red:hover:not(:disabled) { background: var(--red-hover); }
+.btn-blue { background: var(--blue); }
+.btn-blue:hover:not(:disabled) { background: var(--blue-hover); }
+.btn-blue:disabled { background: var(--raised); color: var(--off); }
 .link { padding: 0; border: 0; background: none; color: var(--text); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 
 /* Pills: one shape, the color comes from --c. */
@@ -286,6 +298,18 @@ th.num { font-weight: 600; }
 }
 .message:focus-visible { border-color: var(--blue); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 30%, transparent); }
 .message::placeholder { color: var(--faint); }
+/* Messaggio libero: the box and its emoji/count footer share one frame, which takes the focus ring. */
+.compose { border: 1px solid var(--line-strong); border-radius: 8px; background: var(--bg); }
+.compose:has(.message:focus-visible) { border-color: var(--blue); box-shadow: 0 0 0 3px color-mix(in srgb, var(--blue) 30%, transparent); }
+.compose .message { display: block; border: 0; background: none; box-shadow: none; }
+.compose-foot { display: flex; align-items: center; justify-content: space-between; padding: 0 10px 6px 8px; }
+.emoji {
+  display: grid; place-items: center; width: 32px; height: 32px; padding: 0; border: 0; border-radius: 6px;
+  background: none; color: var(--muted); cursor: pointer; transition: background-color 120ms ease-out;
+}
+.emoji:hover { background: var(--hover); color: var(--text); }
+.emoji .ico { width: 20px; height: 20px; }
+.count { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
 
 /* Template editor: a card over the dimmed app; like the menu, depth from tone and hairline, no shadow. */
 .tpl-dialog {
