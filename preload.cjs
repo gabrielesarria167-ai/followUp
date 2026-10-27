@@ -19,6 +19,8 @@ contextBridge.exposeInMainWorld('api', {
   remove: call('remove'),
   openWhatsApp: call('openWhatsApp'),
   openEmail: call('openEmail'),
+  confirmEmail: call('confirmEmail'),
+  copyEmail: call('copyEmail'),
   showEmojiPanel: call('showEmojiPanel'),
   version: call('version'),
   installUpdate: call('installUpdate'),

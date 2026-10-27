@@ -23,6 +23,7 @@ let templates = []; // the five ready messages, in the owner's wording
 let tplId = 'feedback'; // the template in use: it stays chosen from one invoice to the next
 let draft = null; // { key, text }: the message as typed over for one invoice
 let editing = null; // the template open in Modifica
+let asked = null; // { key, text, copied }: an email opened for this invoice, waiting for "L'hai inviata?"
 const PINS = {
   pending: isPending,
   messaged: (r) => r.status === 'messaged',
@@ -288,9 +289,32 @@ function renderDetail() {
   const wa = action('Invia su WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key, text.value), !r.phone);
   wa.prepend(icon('whatsapp'));
   if (!r.phone) wa.title = 'Aggiungi prima un numero di telefono';
-  const mail = action('Invia Email', 'btn btn-mail btn-blue', () => window.api.openEmail(r.key, text.value), !r.email);
+  // Opening the mail program proves nothing (an old one can take the link and never show up): the owner confirms.
+  const mail = el('button', { className: 'btn btn-mail btn-blue', textContent: 'Invia Email', disabled: !r.email });
+  mail.addEventListener('click', async () => {
+    mail.disabled = true;
+    const sent = text.value;
+    await save(() => window.api.openEmail(r.key, sent));
+    if (!failed) asked = { key: r.key, text: sent, copied: false };
+    renderDetail();
+  });
   mail.prepend(icon('mail'));
   if (!r.email) mail.title = 'Aggiungi prima un indirizzo email';
+  const copy = el('button', { className: 'link', textContent: 'Non si è aperta' });
+  copy.addEventListener('click', async () => {
+    await save(() => window.api.copyEmail(r.key, asked.text));
+    asked.copied = !failed;
+    renderDetail();
+  });
+  const ask = asked?.key === r.key && el('div', { className: 'ask', role: 'status' },
+    el('span', {
+      textContent: asked.copied
+        ? 'Indirizzo, oggetto e testo copiati: incollali nella tua posta (Gmail, Outlook sul web…), poi conferma.'
+        : "Email aperta. L'hai inviata?",
+    }),
+    el('div', { className: 'ask-row' },
+      action('Sì, inviata', 'btn', () => { asked = null; return window.api.confirmEmail(r.key); }),
+      !asked.copied && copy));
   const check = () => {
     todo.hidden = !/\[[^\]\n]*\]/.test(text.value);
     wa.disabled = !r.phone || !text.value.trim();
@@ -300,7 +324,7 @@ function renderDetail() {
   text.addEventListener('input', () => { draft = { key: r.key, text: text.value }; check(); });
   check();
   const actions = isPending(r)
-    ? [wa, mail,
+    ? [wa, mail, ask,
        el('div', { className: 'actions-row' }, action('Elimina', 'btn btn-red', () => window.api.setStatus(r.key, 'dismissed')), nextBtn)]
     : [el('div', { className: 'closed-note' },
         el('span', { textContent: `${r.status === 'messaged' ? 'Contattato' : 'Eliminata'} il ${fmtTs(r.at)}` }),

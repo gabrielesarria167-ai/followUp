@@ -324,6 +324,14 @@ th.num { font-weight: 600; }
 .tpl-actions .btn { min-width: 110px; min-height: 44px; }
 .actions { display: flex; flex-direction: column; gap: 10px; }
 .actions-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+/* After Invia Email: the owner, not the mail program, says whether it went out. Blue: information, not a state yet. */
+.ask {
+  display: flex; flex-direction: column; gap: 10px; padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--blue) 45%, transparent); border-radius: 8px;
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+}
+.ask-row { display: flex; align-items: center; gap: 16px; }
+.ask .btn { min-height: 36px; }
 .closed-note {
   display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 0 16px;
   border: 1px solid color-mix(in srgb, var(--green) 40%, transparent); border-radius: 8px;

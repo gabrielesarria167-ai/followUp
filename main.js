@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, screen, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell } from 'electron';
 import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
@@ -179,20 +179,46 @@ async function send(key, text, toUrl) {
   const inv = invoices.find((i) => i.key === key);
   const message = String(text ?? '').trim().slice(0, MESSAGE_MAX);
   const url = inv && message && toUrl(inv, message);
-  if (!url) return;
+  if (!url) return false;
   await shell.openExternal(url);
-  store.update(({ states }) => { states[key] = { status: 'messaged', at: Date.now() }; });
+  return true;
 }
 
-ipcMain.handle('openWhatsApp', (_e, key, text) => send(key, text, (inv, message) => {
-  const { phone } = normalizePhone(store.data.phones[contactKey(inv)] ?? inv.telefo);
-  return phone && waUrl(phone, message);
+const markMessaged = (key) => {
+  if (!invoices.some((i) => i.key === key)) return;
+  store.update(({ states }) => { states[key] = { status: 'messaged', at: Date.now() }; });
+};
+
+ipcMain.handle('openWhatsApp', async (_e, key, text) => {
+  const sent = await send(key, text, (inv, message) => {
+    const { phone } = normalizePhone(store.data.phones[contactKey(inv)] ?? inv.telefo);
+    return phone && waUrl(phone, message);
+  });
+  if (sent) markMessaged(key);
+});
+
+const mailTo = (inv) => ({
+  email: normalizeEmail(store.data.emails[contactKey(inv)]),
+  subject: `Fattura n. ${inv.number} del ${inv.date.split('-').reverse().join('/')}`,
+});
+
+// Not marked here: Windows takes a mailto link even when the mail program behind it never opens
+// (an old Outlook 2007 does just that), so the owner says whether it went out (confirmEmail).
+ipcMain.handle('openEmail', (_e, key, text) => send(key, text, (inv, message) => {
+  const { email, subject } = mailTo(inv);
+  return email && mailUrl(email, subject, message);
 }));
 
-ipcMain.handle('openEmail', (_e, key, text) => send(key, text, (inv, message) => {
-  const email = normalizeEmail(store.data.emails[contactKey(inv)]);
-  return email && mailUrl(email, `Fattura n. ${inv.number} del ${inv.date.split('-').reverse().join('/')}`, message);
-}));
+ipcMain.handle('confirmEmail', (_e, key) => markMessaged(key));
+
+// The mail program didn't open: the same email as text, to paste into webmail.
+ipcMain.handle('copyEmail', (_e, key, text) => {
+  const inv = invoices.find((i) => i.key === key);
+  const message = String(text ?? '').trim().slice(0, MESSAGE_MAX);
+  const { email, subject } = inv ? mailTo(inv) : {};
+  if (!email || !message) throw new Error('nothing to copy');
+  clipboard.writeText(`A: ${email}\nOggetto: ${subject}\n\n${message}`);
+});
 
 // Two windows would each keep their own copy of followup.json and overwrite each other's saves.
 if (!app.requestSingleInstanceLock()) app.quit();
