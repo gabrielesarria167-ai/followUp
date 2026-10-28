@@ -54,7 +54,9 @@ async function refresh(meta) {
   $('license').hidden = !license.ok;
   $('license').classList.toggle('expiring', expiring);
   if (license.ok) {
-    $('license-days').textContent = `${license.daysLeft} ${license.daysLeft === 1 ? 'giorno disponibile' : 'giorni disponibili'}`;
+    // The key's date is the last valid day, so less than a day left means it ends tonight at midnight.
+    $('license-days').textContent = license.daysLeft === 0 ? 'Scade oggi alle 23:59'
+      : `${license.daysLeft} ${license.daysLeft === 1 ? 'giorno disponibile' : 'giorni disponibili'}`;
     $('license-until').textContent = `Valida fino al ${fmtDate(license.expires)}`;
   }
   $('company').hidden = !license.ok || !license.name;
