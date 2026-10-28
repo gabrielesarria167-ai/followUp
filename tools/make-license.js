@@ -20,6 +20,13 @@ const revokedFile = join(import.meta.dirname, '..', 'revoked.js');
 const [arg, name, days = '365'] = process.argv.slice(2);
 
 const keys = () => (existsSync(ledger) ? readFileSync(ledger, 'utf8').split('\n').filter(Boolean) : []);
+// Keys signed by another keypair can't be read; they are left out of --list and --revoke, with a note.
+const readable = () => {
+  const all = keys();
+  const ok = all.filter((k) => readKey(k));
+  if (ok.length < all.length) console.error(`${all.length - ok.length} chiavi nel registro non sono leggibili con la PUBLIC_KEY attuale: ignorate.`);
+  return ok;
+};
 const record = (key) => appendFileSync(ledger, `${key}\n`, { mode: 0o600 });
 const fmt = (iso) => iso.split('-').reverse().join('/');
 const fail = (msg) => { console.error(msg); process.exit(1); };
@@ -32,7 +39,7 @@ if (arg === '--init') {
   writeFileSync(file, privateKey.export({ type: 'pkcs8', format: 'pem' }), { mode: 0o600 });
   console.log(`Chiave privata: ${file}\nIncolla in license.js come PUBLIC_KEY:\n${publicKey.export({ type: 'spki', format: 'pem' })}`);
 } else if (arg === '--list') {
-  const rows = keys().map((k) => ({ id: keyId(k), ...readKey(k) })).sort((a, b) => a.e.localeCompare(b.e));
+  const rows = readable().map((k) => ({ id: keyId(k), ...readKey(k) })).sort((a, b) => a.e.localeCompare(b.e));
   if (!rows.length) fail(`Nessuna licenza registrata in ${ledger}.`);
   console.log(`${'P.IVA'.padEnd(13)}${'Scade'.padEnd(13)}${'Stato'.padEnd(22)}Ragione sociale`);
   for (const r of rows) {
@@ -47,7 +54,7 @@ if (arg === '--init') {
   record(name.trim());
   console.log(`Registrata: ${p.p} ${p.n ?? ''}, scade il ${fmt(p.e)}.`);
 } else if (arg === '--revoke') {
-  const ids = keys().filter((k) => readKey(k).p === name).map(keyId).filter((id) => !REVOKED.includes(id));
+  const ids = readable().filter((k) => readKey(k).p === name).map(keyId).filter((id) => !REVOKED.includes(id));
   if (!ids.length) fail(`Nessuna chiave da revocare per ${name}: già revocate, o non registrate (aggiungile con --add).`);
   writeFileSync(revokedFile, `// Written by tools/make-license.js --revoke. Key ids (the first 16 characters of the signature) that no longer unlock;
 // a revocation reaches a shop with the first release it installs after this list changes.

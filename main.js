@@ -1,7 +1,7 @@
 import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell } from 'electron';
 import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
-import { dirname, extname, join } from 'node:path';
+import { extname, join } from 'node:path';
 import { loadInvoices, openArchive, shopVats } from './db.js';
 import { checkLicense } from './license.js';
 import { contactKey, mailUrl, monthView, normalizeEmail, normalizePhone, openStore, rangeView, searchView, templateList, TEMPLATES, waUrl, yearView } from './store.js';
@@ -13,7 +13,6 @@ let dbError = null;
 let shop = { vats: [], latest: null }; // what the license is checked against
 
 // Fallback when the installer saved no path (dev runs): data/wcFatture.mdb.
-// An ESEMPIO file next to the archive marks the client preview: only then are phones invented. Delete it with the real data.
 const dataDir = () => join(app.isPackaged ? app.getPath('userData') : import.meta.dirname, 'data');
 
 // Written by the installer page (build/installer.nsh): per-user installs in the profile, all-users ones in ProgramData.
@@ -38,11 +37,10 @@ const checkKey = (key) => checkLicense(key, { ...shop, now: Date.now(), lastSeen
 
 function readDb() {
   const path = dbPath();
-  const sample = existsSync(join(dirname(path), 'ESEMPIO'));
   let all = [];
   try {
     const archive = openArchive(path);
-    all = loadInvoices(archive, { samplePhones: sample });
+    all = loadInvoices(archive);
     shop = { vats: shopVats(archive), latest: all[0]?.date ?? null };
     dbError = null;
   } catch (err) {
@@ -59,7 +57,6 @@ function readDb() {
   invoices = license.ok ? all : [];
   return {
     error: dbError,
-    sample,
     years: [...new Set(invoices.map((i) => Number(i.date.slice(0, 4))))],
     latest: invoices[0]?.date ?? null,
     license: { ...license, needsDb: !shop.vats.length },

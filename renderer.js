@@ -61,10 +61,7 @@ async function refresh(meta) {
   $('company-name').textContent = license.name ?? '';
   showLogo(meta.logo);
   templates = meta.templates;
-  $('status').textContent = meta.error ?? [
-    meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura',
-    meta.sample && 'Anteprima: numeri di telefono di esempio',
-  ].filter(Boolean).join(' · ');
+  $('status').textContent = meta.error ?? (meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura');
   $('status').classList.toggle('error', !!meta.error);
   // Locked: no invoices to show; forget the month so unlocking opens the newest one.
   if (!license.ok) { year = null; return; }

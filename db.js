@@ -13,7 +13,7 @@ const join = (...parts) => parts.map(s).filter(Boolean).join(' ');
 // Read-only: the whole file is read into memory once, Wincar's file is never opened for writing.
 export const openArchive = (path) => new MDBReader(readFileSync(path));
 
-export function loadInvoices(archive, { samplePhones = false } = {}) {
+export function loadInvoices(archive) {
   const table = archive.getTable('TESFAT');
   const rows = table.getData({ columns: COLUMNS })
     .filter((r) => r.F_DATFAT && INCLUDED_DOC_TYPES.includes(s(r.F_TIPDOC)))
@@ -38,7 +38,6 @@ export function loadInvoices(archive, { samplePhones = false } = {}) {
       };
     })
     .sort((a, b) => b.date.localeCompare(a.date) || b.key.localeCompare(a.key, undefined, { numeric: true }));
-  if (samplePhones && !rows.some((r) => r.telefo)) for (const r of rows) r.telefo = placeholderPhone(r.clientCode);
   return rows;
 }
 
@@ -46,15 +45,4 @@ export function loadInvoices(archive, { samplePhones = false } = {}) {
 export function shopVats(archive) {
   if (!archive.getTableNames().includes('ProgressiviFE')) return [];
   return [...new Set(archive.getTable('ProgressiviFE').getData({ columns: ['F_PFE_PARIVA'] }).map((r) => s(r.F_PFE_PARIVA)).filter(Boolean))];
-}
-
-// Preview only: the bundled sample has no F_TELEFO, so invent stable per-client numbers to show
-// every phone state. Never on real data, where these could belong to strangers.
-function placeholderPhone(code) {
-  const n = Number(code) || 0;
-  const digits = String(1000000 + (n * 7919) % 9000000);
-  if (n % 10 === 0) return '';                                   // senza telefono
-  if (n % 10 === 1) return `0444 ${digits.slice(1)}`;            // fisso
-  if (n % 10 === 2) return `0444 ${digits.slice(1)} / 347 ${digits}`; // fisso + cellulare
-  return `${['333', '338', '347', '349'][n % 4]} ${digits}`;
 }

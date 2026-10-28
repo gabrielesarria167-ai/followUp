@@ -33,19 +33,6 @@ test('loadInvoices matches the exported sample', { skip }, () => {
   assert.equal(rows.find((r) => r.key === 'FI-2026-167-').car, 'SKODA Kodiaq');
 });
 
-test('placeholder phones only when asked, stable per client, covering every state', { skip }, () => {
-  const archive = openArchive(file);
-  assert.ok(loadInvoices(archive).every((r) => r.telefo === ''));
-  const rows = loadInvoices(archive, { samplePhones: true });
-  const phones = new Map();
-  for (const r of rows) {
-    if (phones.has(r.clientCode)) assert.equal(r.telefo, phones.get(r.clientCode));
-    phones.set(r.clientCode, r.telefo);
-  }
-  const kinds = new Set([...phones.values()].map((p) => p === '' ? 'none' : p.includes('/') ? 'both' : p[0]));
-  assert.deepEqual([...kinds].sort(), ['0', '3', 'both', 'none']);
-});
-
 test('shopVats reads the shop\'s own P.IVA', { skip }, () => {
   assert.deepEqual(shopVats(openArchive(file)), ['03256760236']);
 });
