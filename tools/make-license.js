@@ -2,8 +2,10 @@
 //   node tools/make-license.js --init                       once: creates the signing key
 //   node tools/make-license.js <P.IVA> "<Ragione sociale>" [days=365]
 //   node tools/make-license.js --list                       every key made, with its expiry and state
+//   node tools/make-license.js --search <P.IVA>            prints that shop's key(s), newest last
+//   node tools/make-license.js --rename <P.IVA> "<nuovo nome>"  new key, same expiry, new name (the old key keeps working)
 //   node tools/make-license.js --add <key>                  records a key made before the list existed
-//   node tools/make-license.js --revoke <P.IVA>             blocks that shop's keys, from the next release on
+//   node tools/make-license.js --revoke <P.IVA> ["<nome>"]  blocks that shop's keys (only the ones with that name, if given), from the next release on
 import { generateKeyPairSync } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -47,6 +49,19 @@ if (arg === '--init') {
     const state = REVOKED.includes(r.id) ? 'revocata' : left < 0 ? 'scaduta' : `attiva, ${left} giorni`;
     console.log(`${r.p.padEnd(13)}${fmt(r.e).padEnd(13)}${state.padEnd(22)}${r.n ?? ''}`);
   }
+} else if (arg === '--search') {
+  const found = readable().filter((k) => readKey(k).p === name);
+  if (!found.length) fail(`Nessuna licenza registrata per ${name}.`);
+  found.forEach((k) => console.log(`${fmt(readKey(k).e)}${REVOKED.includes(keyId(k)) ? ' (revocata)' : ''}\n${k}`));
+} else if (arg === '--rename') {
+  if (!days || days === '365') fail('Uso: --rename <P.IVA> "<nuovo nome>"');
+  // The name is inside the signed key, so renaming means signing again; the old key stays in the ledger so --revoke still covers it.
+  const latest = readable().map((k) => readKey(k)).filter((k) => k.p === name).sort((a, b) => b.e.localeCompare(a.e))[0];
+  if (!latest) fail(`Nessuna licenza registrata per ${name}.`);
+  const key = signLicense({ p: name, n: days, e: latest.e }, readFileSync(file));
+  if (!readKey(key)) fail('La chiave privata non corrisponde alla PUBLIC_KEY di license.js.');
+  record(key);
+  console.log(key);
 } else if (arg === '--add') {
   const p = readKey(name);
   if (!p) fail('Chiave non valida per questa versione di FollowUp.');
@@ -54,7 +69,7 @@ if (arg === '--init') {
   record(name.trim());
   console.log(`Registrata: ${p.p} ${p.n ?? ''}, scade il ${fmt(p.e)}.`);
 } else if (arg === '--revoke') {
-  const ids = readable().filter((k) => readKey(k).p === name).map(keyId).filter((id) => !REVOKED.includes(id));
+  const ids = readable().filter((k) => readKey(k).p === name && (days === '365' || readKey(k).n === days)).map(keyId).filter((id) => !REVOKED.includes(id));
   if (!ids.length) fail(`Nessuna chiave da revocare per ${name}: già revocate, o non registrate (aggiungile con --add).`);
   writeFileSync(revokedFile, `// Written by tools/make-license.js --revoke. Key ids (the first 16 characters of the signature) that no longer unlock;
 // a revocation reaches a shop with the first release it installs after this list changes.
@@ -69,5 +84,5 @@ export const REVOKED = [${[...REVOKED, ...ids].map((id) => `\n  '${id}',`).join(
   record(key);
   console.log(key);
 } else {
-  fail('Uso: node tools/make-license.js <P.IVA 11 cifre> "<Ragione sociale>" [giorni=365] | --list | --add <chiave> | --revoke <P.IVA>');
+  fail('Uso: node tools/make-license.js <P.IVA 11 cifre> "<Ragione sociale>" [giorni=365] | --list | --search <P.IVA> | --rename <P.IVA> "<nuovo nome>" | --add <chiave> | --revoke <P.IVA> ["<nome>"]');
 }
