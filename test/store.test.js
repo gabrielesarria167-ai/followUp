@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, writeFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { isHidden, normalizePhone, waUrl, normalizeEmail, mailUrl, templateList, TEMPLATES, monthView, rangeView, searchView, yearView, openStore, contactKey } from '../store.js';
+import { isHidden, templateList, TEMPLATES, monthView, rangeView, searchView, yearView, openStore } from '../store.js';
+import { contactKey } from '../outreach.js';
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -14,48 +15,6 @@ test('7-day hide rule', () => {
   assert.equal(isHidden({ status: 'messaged', at: now - 7 * DAY - 1000 }, now), true);
   assert.equal(isHidden({ status: 'dismissed', at: now - 8 * DAY }, now), true);
   assert.equal(isHidden({ status: 'messaged', at: now, removed: true }, now), true);
-});
-
-test('normalizePhone', () => {
-  const cases = {
-    '333 1234567': ['393331234567', true],
-    '+39 333 123 4567': ['393331234567', true],
-    '0039 333.1234567': ['393331234567', true],
-    '333-1234567': ['393331234567', true],
-    '0444 123456': ['390444123456', false],
-    '0444 123456 / 333 1234567': ['393331234567', true],
-    'Tel. 0444-123456, cell. 340 9876543': ['393409876543', true],
-    '+44 7700 900123': ['447700900123', true],
-    '': ['', false],
-    '12345': ['', false],
-  };
-  for (const [input, [phone, mobile]] of Object.entries(cases)) {
-    assert.deepEqual(normalizePhone(input), { phone, mobile }, input);
-  }
-  assert.deepEqual(normalizePhone(undefined), { phone: '', mobile: false });
-});
-
-test('waUrl encodes the text', () => {
-  assert.equal(waUrl('393331234567', "com'è & ok?"), 'https://wa.me/393331234567?text=com\'%C3%A8%20%26%20ok%3F');
-});
-
-test('normalizeEmail keeps only a plain address', () => {
-  const cases = {
-    'info@rasottoflotte.it': 'info@rasottoflotte.it',
-    ' Mario.Rossi+auto@mail.co.uk ': 'Mario.Rossi+auto@mail.co.uk',
-    'info@x.it; amm@x.it': 'info@x.it',
-    'a@b.it?bcc=spy@evil.com': 'a@b.it',
-    'info@x': '',
-    'non ce l\'ha': '',
-    '': '',
-  };
-  for (const [input, email] of Object.entries(cases)) assert.equal(normalizeEmail(input), email, input);
-  assert.equal(normalizeEmail(undefined), '');
-});
-
-test('mailUrl encodes subject and body', () => {
-  assert.equal(mailUrl('a@b.it', 'Fattura n. 1', "com'è & ok?\nCiao"),
-    'mailto:a@b.it?subject=Fattura%20n.%201&body=com\'%C3%A8%20%26%20ok%3F%0ACiao');
 });
 
 test('templates: five, the owner\'s wording wins, the original stays', () => {

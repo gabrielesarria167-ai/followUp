@@ -3,14 +3,13 @@ import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { loadInvoices, openArchive, shopVats } from './db.js';
-import { checkLicense } from './license.js';
-import { contactKey, mailUrl, monthView, normalizeEmail, normalizePhone, openStore, rangeView, searchView, templateList, TEMPLATES, waUrl, yearView } from './store.js';
+import { MESSAGE_MAX } from './outreach.js';
+import { createSession } from './session.js';
+import { openStore, templateList, TEMPLATES } from './store.js';
 
 let store;
+let session;
 let win;
-let invoices = [];
-let dbError = null;
-let shop = { vats: [], latest: null }; // what the license is checked against
 
 // Fallback when the installer saved no path (dev runs): data/wcFatture.mdb.
 const dataDir = () => join(app.isPackaged ? app.getPath('userData') : import.meta.dirname, 'data');
@@ -33,54 +32,18 @@ function configuredDbPath() {
 // The archive picked on the lock screen (the latest choice), else the installer's, else the one inside FollowUp.
 const dbPath = () => store.data.dbPath ?? configuredDbPath() ?? join(dataDir(), 'wcFatture.mdb');
 
-const checkKey = (key) => checkLicense(key, { ...shop, now: Date.now(), lastSeen: store.data.lastSeen });
+// Locked or not, the page also gets the logo, which is a file in FollowUp's own folder.
+const meta = (view) => ({ ...view, logo: logoDataUrl() });
 
-function readDb() {
-  const path = dbPath();
-  let all = [];
-  try {
-    const archive = openArchive(path);
-    all = loadInvoices(archive);
-    shop = { vats: shopVats(archive), latest: all[0]?.date ?? null };
-    dbError = null;
-  } catch (err) {
-    shop = { vats: [], latest: null };
-    dbError = existsSync(path) ? `Impossibile leggere ${path}: ${err.message}` : `Archivio fatture mancante: ${path}. Reinstalla FollowUp per selezionarlo`;
-  }
-  const license = checkKey(store.data.license);
-  try {
-    store.update((d) => { d.lastSeen = Math.max(d.lastSeen ?? 0, Date.now()); });
-  } catch {
-    // A full or read-only disk must not blank the screen; the next refresh records it.
-  }
-  // Locked: no invoices in the main process, so every other handler has nothing to act on.
-  invoices = license.ok ? all : [];
-  return {
-    error: dbError,
-    years: [...new Set(invoices.map((i) => Number(i.date.slice(0, 4))))],
-    latest: invoices[0]?.date ?? null,
-    license: { ...license, needsDb: !shop.vats.length },
-    logo: logoDataUrl(),
-    templates: templateList(store.data),
-  };
-}
+ipcMain.handle('refresh', () => meta(session.refresh()));
 
-ipcMain.handle('refresh', () => readDb());
-
-// A wrong key never replaces a working one.
-ipcMain.handle('activate', (_e, key) => {
-  const k = String(key ?? '').trim();
-  const { ok, reason } = checkKey(k);
-  if (ok) store.update((d) => { d.license = k; });
-  return { ...readDb(), rejected: ok ? null : reason };
-});
+ipcMain.handle('activate', (_e, key) => meta(session.activate(key)));
 
 ipcMain.handle('pickDb', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title: 'Archivio fatture Wincar', properties: ['openFile'], filters: [{ name: 'Archivio Wincar', extensions: ['mdb'] }],
   });
-  if (!canceled) store.update((d) => { d.dbPath = filePaths[0]; });
-  return readDb();
+  return meta(canceled ? session.refresh() : session.useArchive(filePaths[0]));
 });
 
 const LOGO_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
@@ -127,8 +90,6 @@ ipcMain.handle('removeLogo', async () => {
   return logoDataUrl();
 });
 
-const MESSAGE_MAX = 1000; // the panel's limit too
-
 // The owner's wording for a template; the original text, or none, brings the original back.
 ipcMain.handle('setTemplate', (_e, id, text) => {
   const t = TEMPLATES.find((x) => x.id === id);
@@ -142,84 +103,44 @@ ipcMain.handle('setTemplate', (_e, id, text) => {
   return templateList(store.data);
 });
 
-ipcMain.handle('month', (_e, year, month) => monthView(invoices, store.data, year, month, Date.now()));
+ipcMain.handle('month', (_e, year, month) => session.month(year, month));
 
-ipcMain.handle('range', (_e, from, to) => rangeView(invoices, store.data, String(from), String(to), Date.now()));
+ipcMain.handle('range', (_e, from, to) => session.range(String(from), String(to)));
 
-ipcMain.handle('search', (_e, query) => searchView(invoices, store.data, String(query ?? ''), Date.now()));
+ipcMain.handle('search', (_e, query) => session.search(String(query ?? '')));
 
-ipcMain.handle('year', (_e, year) => yearView(invoices, store.data, year, Date.now()));
+ipcMain.handle('year', (_e, year) => session.year(year));
 
-// A phone or email as typed, kept for the client; an empty box forgets it.
-const setContact = (list) => (_e, key, text) => {
-  const inv = invoices.find((i) => i.key === key);
-  if (!inv) return;
-  const t = String(text ?? '').trim();
-  store.update((data) => {
-    if (t) data[list][contactKey(inv)] = t;
-    else delete data[list][contactKey(inv)];
-  });
-};
-ipcMain.handle('setPhone', setContact('phones'));
-ipcMain.handle('setEmail', setContact('emails'));
+ipcMain.handle('setPhone', (_e, key, text) => session.setContact('phones', key, text));
+ipcMain.handle('setEmail', (_e, key, text) => session.setContact('emails', key, text));
 
-ipcMain.handle('setStatus', (_e, key, status) => {
-  store.update(({ states }) => {
-    if (status === 'dismissed') states[key] = { status, at: Date.now() };
-    else delete states[key];
-  });
-});
+ipcMain.handle('setStatus', (_e, key, status) => session.setStatus(key, status));
 
-// Only a contacted invoice can be removed; it stays contacted, so it never comes back as to-do.
-ipcMain.handle('remove', (_e, key) => {
-  store.update(({ states }) => { if (states[key]?.status === 'messaged') states[key].removed = true; });
-});
+ipcMain.handle('remove', (_e, key) => session.remove(key));
 
 // The text is the panel's message box: a template filled for this invoice, maybe edited.
-// The URL is always built here, so only wa.me and mailto links ever reach the OS.
-async function send(key, text, toUrl) {
-  const inv = invoices.find((i) => i.key === key);
-  const message = String(text ?? '').trim().slice(0, MESSAGE_MAX);
-  const url = inv && message && toUrl(inv, message);
-  if (!url) return false;
-  await shell.openExternal(url);
-  return true;
-}
-
-const markMessaged = (key) => {
-  if (!invoices.some((i) => i.key === key)) return;
-  store.update(({ states }) => { states[key] = { status: 'messaged', at: Date.now() }; });
-};
-
+// The URL is always built by Outreach, so only wa.me and mailto links ever reach the OS.
 ipcMain.handle('openWhatsApp', async (_e, key, text) => {
-  const sent = await send(key, text, (inv, message) => {
-    const { phone } = normalizePhone(store.data.phones[contactKey(inv)] ?? inv.telefo);
-    return phone && waUrl(phone, message);
-  });
-  if (sent) markMessaged(key);
+  const { url, marks } = session.outreach(key, text, 'whatsapp');
+  if (!url) return;
+  await shell.openExternal(url);
+  if (marks) session.markMessaged(key);
 });
 
-const mailTo = (inv) => ({
-  email: normalizeEmail(store.data.emails[contactKey(inv)]),
-  subject: `Fattura n. ${inv.number} del ${inv.date.split('-').reverse().join('/')}`,
+// Not marked here: the owner says whether it went out (confirmEmail).
+ipcMain.handle('openEmail', async (_e, key, text) => {
+  const { url } = session.outreach(key, text, 'email');
+  if (url) await shell.openExternal(url);
+  return !!url;
 });
 
-// Not marked here: Windows takes a mailto link even when the mail program behind it never opens
-// (an old Outlook 2007 does just that), so the owner says whether it went out (confirmEmail).
-ipcMain.handle('openEmail', (_e, key, text) => send(key, text, (inv, message) => {
-  const { email, subject } = mailTo(inv);
-  return email && mailUrl(email, subject, message);
-}));
-
-ipcMain.handle('confirmEmail', (_e, key) => markMessaged(key));
+ipcMain.handle('confirmEmail', (_e, key) => session.markMessaged(key));
 
 // The mail program didn't open: the same email as text, to paste into webmail.
 ipcMain.handle('copyEmail', (_e, key, text) => {
-  const inv = invoices.find((i) => i.key === key);
-  const message = String(text ?? '').trim().slice(0, MESSAGE_MAX);
-  const { email, subject } = inv ? mailTo(inv) : {};
-  if (!email || !message) throw new Error('nothing to copy');
-  clipboard.writeText(`A: ${email}\nOggetto: ${subject}\n\n${message}`);
+  const { copy } = session.outreach(key, text, 'email');
+  if (!copy) throw new Error('nothing to copy');
+  clipboard.writeText(copy);
 });
 
 // Two windows would each keep their own copy of followup.json and overwrite each other's saves.
@@ -230,6 +151,11 @@ app.commandLine.appendSwitch('lang', 'it-IT');
 
 app.whenReady().then(() => {
   store = openStore(join(app.getPath('userData'), 'followup.json'));
+  session = createSession({
+    store,
+    dbPath,
+    readArchive: (path) => { const archive = openArchive(path); return { invoices: loadInvoices(archive), vats: shopVats(archive) }; },
+  });
   // Never bigger than the screen: on a 1366×768 laptop the bottom bar would open off-screen.
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   win = new BrowserWindow({

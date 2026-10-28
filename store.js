@@ -1,4 +1,5 @@
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { resolveContact } from './outreach.js';
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -37,30 +38,6 @@ export function openStore(file) {
 // Removed: taken off the list by hand before the week is up.
 export const isHidden = (state, now) => !!state && (!!state.removed || now - state.at > WEEK_MS);
 
-// Turns free text like "0444 123456 / 333 1234567" into wa.me digits, preferring a mobile.
-// shortcut: numbers without a prefix are assumed Italian (+39); revisit if the client has foreign clients.
-export function normalizePhone(text) {
-  const candidates = (text ?? '').match(/\+?\d[\d\s.\-()]*\d/g) ?? [];
-  const numbers = candidates.map((c) => {
-    let d = c.replace(/\D/g, '');
-    if (c.startsWith('+')) return d;
-    if (d.startsWith('00')) return d.slice(2);
-    return d.startsWith('0') || d.length <= 10 ? '39' + d : d;
-  }).filter((d) => d.length >= 10 && d.length <= 15);
-  const isMobile = (d) => !d.startsWith('39') || d[2] === '3';
-  const phone = numbers.find(isMobile) ?? numbers[0] ?? '';
-  return { phone, mobile: phone ? isMobile(phone) : false };
-}
-
-export const waUrl = (phone, text) => `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
-
-// The first address in free text like "info@x.it; amm@x.it". No ? & % or spaces, so it can't add mailto fields.
-export const normalizeEmail = (text) => (text ?? '').match(/[\w.+-]+@[\w-]+(\.[\w-]+)*\.[a-z]{2,}/i)?.[0] ?? '';
-
-// shortcut: some mail programs cut mailto links past ~2000 characters; a long accented message can get there.
-export const mailUrl = (email, subject, text) =>
-  `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
-
 // The ready messages. {…} is filled from the invoice (the panel does it); [between brackets] is for the owner
 // to replace, in the message or for good with Modifica. A fifth of invoices have no plate: the text must read without it.
 export const TEMPLATES = [
@@ -90,11 +67,7 @@ export const TEMPLATES = [
 // Each template in the owner's wording where they changed it; the original stays for Ripristina.
 export const templateList = (data) => TEMPLATES.map((t) => ({ ...t, original: t.text, text: data.templates[t.id] ?? t.text }));
 
-// Saved phones and emails follow the client; code 0 is not a real client, so those stay on their own invoice.
-export const contactKey = (inv) => inv.clientCode || inv.key;
-
-// Rows for one month, with the resolved contacts and follow-up state. A phone saved in FollowUp wins over F_TELEFO;
-// emails are only typed in FollowUp.
+// Rows for one month, with the resolved contacts and follow-up state.
 export const monthView = (invoices, data, year, month, now) =>
   periodView(invoices, data, (date) => date.startsWith(`${year}-${String(month).padStart(2, '0')}`), now);
 
@@ -106,11 +79,9 @@ function periodView(invoices, data, inPeriod, now) {
   return invoices
     .filter((inv) => inPeriod(inv.date) && !isHidden(data.states[inv.key], now))
     .map((inv) => {
-      const phoneText = data.phones[contactKey(inv)] ?? inv.telefo;
-      const emailText = data.emails[contactKey(inv)] ?? '';
       const state = data.states[inv.key];
       return {
-        ...inv, phoneText, ...normalizePhone(phoneText), emailText, email: normalizeEmail(emailText),
+        ...inv, ...resolveContact(inv, data),
         status: state?.status ?? 'pending', at: state?.at ?? null,
       };
     });
