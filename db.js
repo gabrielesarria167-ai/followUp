@@ -10,9 +10,11 @@ const COLUMNS = ['F_NUMFAT', 'F_ALFFAT', 'F_TIPDOC', 'F_DATFAT', 'F_CODCLI', 'F_
 const s = (v) => (v ?? '').toString().trim();
 const join = (...parts) => parts.map(s).filter(Boolean).join(' ');
 
-// Read-only: the whole file is read into memory, Wincar's file is never opened for writing.
-export function loadInvoices(path, { samplePhones = false } = {}) {
-  const table = new MDBReader(readFileSync(path)).getTable('TESFAT');
+// Read-only: the whole file is read into memory once, Wincar's file is never opened for writing.
+export const openArchive = (path) => new MDBReader(readFileSync(path));
+
+export function loadInvoices(archive, { samplePhones = false } = {}) {
+  const table = archive.getTable('TESFAT');
   const rows = table.getData({ columns: COLUMNS })
     .filter((r) => r.F_DATFAT && INCLUDED_DOC_TYPES.includes(s(r.F_TIPDOC)))
     .map((r) => {
@@ -41,10 +43,9 @@ export function loadInvoices(path, { samplePhones = false } = {}) {
 }
 
 // The shop's own P.IVA: Wincar records it as the sender of every e-invoice. The license is bound to it.
-export function shopVats(path) {
-  const reader = new MDBReader(readFileSync(path));
-  if (!reader.getTableNames().includes('ProgressiviFE')) return [];
-  return [...new Set(reader.getTable('ProgressiviFE').getData({ columns: ['F_PFE_PARIVA'] }).map((r) => s(r.F_PFE_PARIVA)).filter(Boolean))];
+export function shopVats(archive) {
+  if (!archive.getTableNames().includes('ProgressiviFE')) return [];
+  return [...new Set(archive.getTable('ProgressiviFE').getData({ columns: ['F_PFE_PARIVA'] }).map((r) => s(r.F_PFE_PARIVA)).filter(Boolean))];
 }
 
 // Preview only: the bundled sample has no F_TELEFO, so invent stable per-client numbers to show

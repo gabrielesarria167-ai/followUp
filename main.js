@@ -2,7 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell } from 'e
 import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { dirname, extname, join } from 'node:path';
-import { loadInvoices, shopVats } from './db.js';
+import { loadInvoices, openArchive, shopVats } from './db.js';
 import { checkLicense } from './license.js';
 import { contactKey, mailUrl, monthView, normalizeEmail, normalizePhone, openStore, rangeView, searchView, templateList, TEMPLATES, waUrl, yearView } from './store.js';
 
@@ -41,15 +41,20 @@ function readDb() {
   const sample = existsSync(join(dirname(path), 'ESEMPIO'));
   let all = [];
   try {
-    all = loadInvoices(path, { samplePhones: sample });
-    shop = { vats: shopVats(path), latest: all[0]?.date ?? null };
+    const archive = openArchive(path);
+    all = loadInvoices(archive, { samplePhones: sample });
+    shop = { vats: shopVats(archive), latest: all[0]?.date ?? null };
     dbError = null;
   } catch (err) {
     shop = { vats: [], latest: null };
     dbError = existsSync(path) ? `Impossibile leggere ${path}: ${err.message}` : `Archivio fatture mancante: ${path}. Reinstalla FollowUp per selezionarlo`;
   }
   const license = checkKey(store.data.license);
-  store.update((d) => { d.lastSeen = Math.max(d.lastSeen ?? 0, Date.now()); });
+  try {
+    store.update((d) => { d.lastSeen = Math.max(d.lastSeen ?? 0, Date.now()); });
+  } catch {
+    // A full or read-only disk must not blank the screen; the next refresh records it.
+  }
   // Locked: no invoices in the main process, so every other handler has nothing to act on.
   invoices = license.ok ? all : [];
   return {

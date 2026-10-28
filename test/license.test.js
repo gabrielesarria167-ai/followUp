@@ -28,14 +28,18 @@ test('bad keys are rejected with a reason', () => {
     'other shop': [check(key, { vats: ['01234567890'] }), /altra azienda/],
     'no archive': [check(key, { vats: [] }), /archivio/],
     expired: [check(key, { now: new Date('2027-10-27T00:01').getTime() }), /scaduta il 26\/10\/2027/],
-    'clock set back': [check(key, { lastSeen: now + 2 * DAY }), /data del PC/],
-    'invoices past expiry': [check(key, { latest: '2027-11-02' }), /scaduta/],
+    'clock set back': [check(key, { lastSeen: now + 2 * DAY }), /già visto il 28\/10\/2026/],
+    'invoices past expiry': [check(key, { now: new Date('2027-10-20T12:00').getTime(), latest: '2027-11-02' }), /scaduta/],
     revoked: [check(key, { revoked: [keyId(key)] }), /revocata/],
   };
   for (const [name, [r, reason]] of Object.entries(cases)) {
     assert.equal(r.ok, false, name);
     assert.match(r.reason, reason, name);
   }
+});
+
+test('an invoice dated far in the future is ignored as a typo', () => {
+  assert.equal(check(key, { latest: '2062-03-01' }).ok, true);
 });
 
 test('the shipped public key is not the test one', () => {

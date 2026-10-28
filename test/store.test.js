@@ -146,4 +146,6 @@ test('update undoes the change when the save fails', () => {
   const s = openStore(join(dir, 'missing-folder', 'followup.json'));
   assert.throws(() => s.update(({ states }) => { states.a = { status: 'dismissed', at: 1 }; }));
   assert.deepEqual(s.data.states, {});
+  assert.throws(() => s.update((d) => { d.license = 'key'; }));
+  assert.equal('license' in s.data, false);
 });

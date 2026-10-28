@@ -7,6 +7,7 @@ MCowBQYDK2VwAyEAwUuI94qZ762hX6R6znR4mI+HwdVucw5XTHgONcV8Mg4=
 -----END PUBLIC KEY-----`;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const TYPO_MS = 60 * DAY_MS;
 const fmt = (iso) => iso.split('-').reverse().join('/');
 
 // Key = base64url(JSON {p: P.IVA, n: name, e: last valid day}) + "." + Ed25519 signature of that text.
@@ -40,9 +41,11 @@ export function checkLicense(key, { vats, now, lastSeen = 0, latest = null, revo
   if (revoked.includes(keyId(key))) return { ok: false, ...info, reason: 'Questa licenza è stata revocata.' };
   if (!vats.length) return { ok: false, ...info, reason: 'Nessuna partita IVA nell\'archivio fatture: scegli l\'archivio Wincar dell\'azienda.' };
   if (!vats.includes(p.p)) return { ok: false, ...info, reason: 'Questa chiave è intestata a un\'altra azienda.' };
-  if (now < lastSeen - DAY_MS) return { ok: false, ...info, reason: 'La data del PC è indietro. Correggila e riapri FollowUp.' };
+  if (now < lastSeen - DAY_MS) return { ok: false, ...info, reason: `La data del PC è indietro: FollowUp ha già visto il ${new Date(lastSeen).toLocaleDateString('it-IT')}. Correggila e riapri FollowUp.` };
   const end = new Date(`${p.e}T00:00`).getTime() + DAY_MS; // local midnight after the last valid day
-  const effective = Math.max(now, lastSeen, latest ? Date.parse(latest) : 0);
+  // An invoice dated far ahead of the clock is a typo in Wincar, not proof the clock is wrong.
+  const newest = latest ? Date.parse(latest) : 0;
+  const effective = Math.max(now, lastSeen, newest <= now + TYPO_MS ? newest : 0);
   if (effective >= end) return { ok: false, ...info, reason: `Licenza scaduta il ${fmt(p.e)}.` };
   return { ok: true, ...info, daysLeft: Math.floor((end - effective) / DAY_MS) };
 }

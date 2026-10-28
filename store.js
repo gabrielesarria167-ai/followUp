@@ -26,6 +26,7 @@ export function openStore(file) {
       try {
         save();
       } catch (err) {
+        for (const k of Object.keys(data)) delete data[k]; // keys the change added must go too
         Object.assign(data, JSON.parse(before));
         throw err;
       }
