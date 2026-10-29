@@ -232,17 +232,25 @@ function statesOf(r) {
     .filter(Boolean);
 }
 
+// "+N" opens the list, "−" folds it back; either way the row isn't selected.
 function statesCell(r) {
   const states = statesOf(r);
   const pill = ([cls, label]) => el('span', { className: `state ${cls}`, textContent: label });
-  if (states.length === 1 || expanded.has(r.key)) return el('td', {}, el('div', { className: 'states open' }, ...states.map(pill)));
-  const more = el('button', { className: 'more', textContent: `+${states.length - 1}`, title: states.slice(1).map(([, label]) => label).join(', ') });
-  more.setAttribute('aria-label', `Mostra anche: ${more.title}`);
-  const td = el('td', {}, el('div', { className: 'states' }, pill(states[0]), more));
-  more.addEventListener('click', (e) => {
-    e.stopPropagation(); // opens the list, doesn't select the row
-    expanded.add(r.key);
-    td.replaceWith(statesCell(r));
+  if (states.length === 1) return el('td', {}, pill(states[0]));
+  const open = expanded.has(r.key);
+  const others = states.slice(1).map(([, label]) => label).join(', ');
+  const toggle = el('button', { className: 'more', textContent: open ? '−' : `+${states.length - 1}`, title: open ? 'Mostra solo il primo' : others });
+  toggle.setAttribute('aria-expanded', String(open));
+  toggle.setAttribute('aria-label', open ? 'Mostra solo il primo stato' : `Mostra anche: ${others}`);
+  const td = el('td', {}, el('div', { className: 'states' },
+    el('div', { className: 'state-list' }, ...(open ? states : states.slice(0, 1)).map(pill)), toggle));
+  toggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (open) expanded.delete(r.key);
+    else expanded.add(r.key);
+    const next = statesCell(r);
+    td.replaceWith(next);
+    next.querySelector('.more').focus(); // the keyboard stays on the button
   });
   return td;
 }
@@ -464,7 +472,8 @@ for (const b of document.querySelectorAll('th[data-sort] button')) {
   });
 }
 window.api.version().then((v) => { $('version').textContent = `v${v}`; });
-// Updates download on their own; the button appears once one is ready (it also installs on close).
+// Updates download on their own. Once one is ready the banner asks right away; Più tardi leaves the footer
+// button, and closing FollowUp installs it anyway.
 window.api.onUpdateProgress((percent) => {
   $('version').dataset.progress = `Download aggiornamento ${percent}%`;
 });
@@ -473,6 +482,10 @@ window.api.onUpdateReady((version) => {
   $('update').textContent = `Aggiorna a v${version}`;
   $('update').title = "Riavvia FollowUp con la nuova versione";
   $('update').hidden = false;
+  $('update-text').textContent = `È pronta la nuova versione v${version}. Riavvia ora per usarla, oppure si installerà alla chiusura di FollowUp.`;
+  $('update-banner').hidden = false;
 });
 $('update').addEventListener('click', () => window.api.installUpdate());
+$('update-now').addEventListener('click', () => window.api.installUpdate());
+$('update-later').addEventListener('click', () => { $('update-banner').hidden = true; });
 refresh();
