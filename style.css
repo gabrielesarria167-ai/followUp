@@ -96,7 +96,17 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
 .yellow, .state.pending { --c: var(--yellow); }
 .green, .state.messaged { --c: var(--green); }
 .red, .state.nophone { --c: var(--red); }
-.slate { --c: var(--muted); }
+.slate, .state.nolandline { --c: var(--muted); }
+/* A row's states: the first and "+N", or all of them, stacked, once "+N" is pressed. */
+.states { display: flex; align-items: center; gap: 6px; }
+.states.open { flex-direction: column; align-items: flex-start; }
+.more {
+  min-height: 30px; padding: 0 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-strong); background: var(--surface);
+  font: inherit; font-size: 13px; font-weight: 600; color: var(--muted);
+  transition: border-color 120ms ease-out, color 120ms ease-out;
+}
+.more:hover { border-color: var(--muted); color: var(--text); }
 .state.dismissed { --c: var(--off); color: var(--muted); }
 
 .bar {

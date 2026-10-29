@@ -30,7 +30,14 @@ const PINS = {
   nophone: (r) => isPending(r) && !r.phone,
   nolandline: (r) => isPending(r) && !r.landline,
 };
-const STATUS_ORDER = ['pending', 'nophone', 'messaged', 'dismissed'];
+const STATUS_ORDER = ['pending', 'nophone', 'nolandline', 'messaged', 'dismissed'];
+// Rows by their states, compared in order: to-do with nothing missing first, then what's missing, then done.
+const statusRank = (a, b) => {
+  const [x, y] = [a, b].map((r) => statesOf(r).map(([cls]) => STATUS_ORDER.indexOf(cls)));
+  for (let i = 0; i < Math.max(x.length, y.length); i++) if (x[i] !== y[i]) return (x[i] ?? -1) - (y[i] ?? -1);
+  return 0;
+};
+const expanded = new Set(); // rows whose "+N" was pressed: all their states show
 // Why every invoice can show "Senza cellulare": the phones come from Wincar's customer registry.
 const REGISTRY_NOTES = {
   missing: 'Rubrica clienti di Wincar (wcTabelle.mdb) non trovata accanto all\'archivio: i cellulari si aggiungono a mano',
@@ -41,7 +48,7 @@ const SORTS = {
   number: (a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }),
   client: (a, b) => a.client.localeCompare(b.client, 'it'),
   total: (a, b) => a.total - b.total,
-  status: (a, b) => STATUS_ORDER.indexOf(stateOf(a)[0]) - STATUS_ORDER.indexOf(stateOf(b)[0]),
+  status: statusRank,
 };
 
 // Builds DOM with textContent only: DB strings are never parsed as HTML.
@@ -217,14 +224,30 @@ function renderList() {
   $('rows').replaceChildren(...rows.map(row));
 }
 
-function stateOf(r) {
-  if (r.status === 'messaged') return ['messaged', 'Contattato'];
-  if (r.status === 'dismissed') return ['dismissed', 'Eliminata'];
-  return r.phone ? ['pending', 'Da contattare'] : ['nophone', 'Senza cellulare'];
+// Every state a row is in, most important first: the first shows, the others wait behind "+N".
+function statesOf(r) {
+  if (r.status === 'messaged') return [['messaged', 'Contattato']];
+  if (r.status === 'dismissed') return [['dismissed', 'Eliminata']];
+  return [['pending', 'Da contattare'], !r.phone && ['nophone', 'Senza cellulare'], !r.landline && ['nolandline', 'Senza telefono fisso']]
+    .filter(Boolean);
+}
+
+function statesCell(r) {
+  const states = statesOf(r);
+  const pill = ([cls, label]) => el('span', { className: `state ${cls}`, textContent: label });
+  if (states.length === 1 || expanded.has(r.key)) return el('td', {}, el('div', { className: 'states open' }, ...states.map(pill)));
+  const more = el('button', { className: 'more', textContent: `+${states.length - 1}`, title: states.slice(1).map(([, label]) => label).join(', ') });
+  more.setAttribute('aria-label', `Mostra anche: ${more.title}`);
+  const td = el('td', {}, el('div', { className: 'states' }, pill(states[0]), more));
+  more.addEventListener('click', (e) => {
+    e.stopPropagation(); // opens the list, doesn't select the row
+    expanded.add(r.key);
+    td.replaceWith(statesCell(r));
+  });
+  return td;
 }
 
 function row(r) {
-  const [cls, label] = stateOf(r);
   const client = el('button', { className: 'client', textContent: titleCase(r.client) || '—' });
   const tr = el('tr', { className: isPending(r) ? '' : 'is-done' },
     el('td', { className: 'nowrap', textContent: searching() ? fmtDate(r.date) : fmtShort(r.date) }), // results span years
@@ -232,7 +255,7 @@ function row(r) {
     el('td', {}, client, el('small', { textContent: titleCase(r.place) })),
     el('td', {}, el('div', { textContent: r.car || '—' }), el('small', { textContent: r.plate })),
     el('td', { className: 'num', textContent: euro.format(r.total) }),
-    el('td', {}, el('span', { className: `state ${cls}`, textContent: label })),
+    statesCell(r),
   );
   tr.setAttribute('aria-selected', String(r.key === selectedKey));
   tr.addEventListener('click', () => select(r.key));
