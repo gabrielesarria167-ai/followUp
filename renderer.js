@@ -472,8 +472,7 @@ for (const b of document.querySelectorAll('th[data-sort] button')) {
   });
 }
 window.api.version().then((v) => { $('version').textContent = `v${v}`; });
-// Updates download on their own. Once one is ready the banner asks right away; Più tardi leaves the footer
-// button, and closing FollowUp installs it anyway.
+// Updates download on their own; the button appears once one is ready (it also installs on close).
 window.api.onUpdateProgress((percent) => {
   $('version').dataset.progress = `Download aggiornamento ${percent}%`;
 });
@@ -482,10 +481,6 @@ window.api.onUpdateReady((version) => {
   $('update').textContent = `Aggiorna a v${version}`;
   $('update').title = "Riavvia FollowUp con la nuova versione";
   $('update').hidden = false;
-  $('update-text').textContent = `È pronta la nuova versione v${version}. Riavvia ora per usarla, oppure si installerà alla chiusura di FollowUp.`;
-  $('update-banner').hidden = false;
 });
 $('update').addEventListener('click', () => window.api.installUpdate());
-$('update-now').addEventListener('click', () => window.api.installUpdate());
-$('update-later').addEventListener('click', () => { $('update-banner').hidden = true; });
 refresh();

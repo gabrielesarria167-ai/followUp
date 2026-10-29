@@ -179,14 +179,19 @@ app.whenReady().then(() => {
   if (app.isPackaged) win.webContents.once('did-finish-load', checkForUpdates);
 });
 
+const UPDATE_CHECK_MS = 30 * 60 * 1000;
+
 // Downloads in the background and installs when the app closes; the footer offers to restart sooner.
-// Checked after the page loads, so a download cached by an earlier run still reaches the footer.
+// Checked after the page loads, so a download cached by an earlier run still reaches the footer, and again
+// every 30 minutes, so a release reaches a FollowUp left open all day.
 function checkForUpdates() {
   const { autoUpdater } = electronUpdater;
   autoUpdater.on('download-progress', ({ percent }) => win?.webContents.send('updateProgress', Math.floor(percent)));
   autoUpdater.on('update-downloaded', ({ version }) => win?.webContents.send('updateReady', version));
   autoUpdater.on('error', (err) => console.error('update:', err.message)); // offline is fine
-  autoUpdater.checkForUpdates().catch(() => {});
+  const check = () => autoUpdater.checkForUpdates().catch(() => {});
+  check();
+  setInterval(check, UPDATE_CHECK_MS);
 }
 
 ipcMain.handle('version', () => app.getVersion());
