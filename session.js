@@ -43,12 +43,14 @@ export function createSession({ store, dbPath, readArchive, now = Date.now, publ
 
   // One read at a time, in order: no two archive reads at once, and an older one never lands last.
   let queue = Promise.resolve();
-  const refresh = () => (queue = queue.then(read, read));
+  const inTurn = (step) => (queue = queue.then(step, step));
+  const refresh = () => inTurn(read);
 
-  // A wrong key never replaces a working one.
+  // A wrong key never replaces a working one. Checked in turn too: against the archive just picked, not the one
+  // still showing while it's read.
   async function activate(key) {
     const k = String(key ?? '').trim();
-    const { ok, reason } = checkKey(k);
+    const { ok, reason } = await inTurn(() => checkKey(k));
     if (ok) store.update((d) => { d.license = k; });
     return { ...(await refresh()), rejected: ok ? null : reason };
   }
@@ -68,14 +70,16 @@ export function createSession({ store, dbPath, readArchive, now = Date.now, publ
     search: (query) => searchView(invoices, store.data, query, now()),
     year: (year) => yearView(invoices, store.data, year, now()),
 
-    // A phone or email as typed, kept for the client; an empty box forgets it.
+    // A phone or email as typed, kept for the client. Typing back what Wincar has forgets it, so Wincar's later
+    // fixes show again; an emptied box over a Wincar number is kept as '', or that number would come back.
     setContact(list, key, text) {
       const inv = invoices.find((i) => i.key === key);
       if (!inv) return;
       const t = String(text ?? '').trim();
+      const fromWincar = { phones: inv.cell, landlines: inv.landline }[list] ?? '';
       store.update((data) => {
-        if (t) data[list][contactKey(inv)] = t;
-        else delete data[list][contactKey(inv)];
+        if (t === fromWincar) delete data[list][contactKey(inv)];
+        else data[list][contactKey(inv)] = t;
       });
     },
 

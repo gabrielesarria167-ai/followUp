@@ -2,6 +2,7 @@ import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell, utilityP
 import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
+import { readInChild } from './child.js';
 import { MESSAGE_MAX } from './outreach.js';
 import { createSession } from './session.js';
 import { openStore, templateList, TEMPLATES } from './store.js';
@@ -32,19 +33,8 @@ function configuredDbPath() {
 const dbPath = () => store.data.dbPath ?? configuredDbPath() ?? join(dataDir(), 'wcFatture.mdb');
 
 // In its own process (reader.js): read in here, the raw files would keep the app at ~400 MB instead of ~80 MB.
-// Settles once: the exit that follows the answer (the kill) changes nothing.
-function readArchive(path) {
-  return new Promise((resolve, reject) => {
-    const reader = utilityProcess.fork(join(import.meta.dirname, 'reader.js'), [], { serviceName: 'FollowUp archivio' });
-    reader.once('message', (result) => {
-      reader.kill();
-      if (result.error) reject(new Error(result.error));
-      else resolve(result);
-    });
-    reader.once('exit', (code) => reject(new Error(`lettura interrotta (codice ${code})`)));
-    reader.postMessage(path);
-  });
-}
+const readArchive = (path) =>
+  readInChild(() => utilityProcess.fork(join(import.meta.dirname, 'reader.js'), [], { serviceName: 'FollowUp archivio' }), path);
 
 // Locked or not, the page also gets the logo, which is a file in FollowUp's own folder.
 const meta = (view) => ({ ...view, logo: logoDataUrl() });

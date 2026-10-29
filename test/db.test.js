@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadInvoices, loadPhones, openArchive, readArchive, shopVats } from '../db.js';
 
@@ -39,7 +41,7 @@ test('shopVats reads the shop\'s own P.IVA', { skip }, () => {
 });
 
 // Stands in for an MDBReader: getTable(name).getData() returns that table's rows.
-const fakeArchive = (tables) => ({ getTable: (name) => ({ getData: () => tables[name] }) });
+const fakeArchive = (tables) => ({ getTableNames: () => Object.keys(tables), getTable: (name) => ({ getData: () => tables[name] }) });
 
 test('phones come from the customer registry, by client code', () => {
   const phones = loadPhones(fakeArchive({ CLIENT: [
@@ -56,9 +58,57 @@ test('phones come from the customer registry, by client code', () => {
   assert.equal(loadInvoices(fakeArchive({ TESFAT: [invoice(7, 3)] }))[0].cell, ''); // no registry
 });
 
-test('readArchive reads invoices and VAT numbers; no registry next to it, no phones', { skip }, () => {
+test('the client code matches across files whatever its type or zero padding', () => {
+  const phones = loadPhones(fakeArchive({ CLIENT: [
+    { F_CODCLI: '007', F_CELLUL: '333 1234567', F_TELEFO: '' },
+    { F_CODCLI: ' 12 ', F_CELLUL: '340 9876543', F_TELEFO: '' },
+    { F_CODCLI: '000', F_CELLUL: '333 0000000', F_TELEFO: '' },
+  ] }));
+  const invoice = (F_CODCLI, F_NUMFAT) => ({ F_CODCLI, F_NUMFAT, F_TIPDOC: 'FI', F_DATFAT: new Date('2026-07-10'), F_ALFFAT: '' });
+  const rows = loadInvoices(fakeArchive({ TESFAT: [invoice(7, 3), invoice(12, 2), invoice('0', 1)] }), phones);
+  assert.deepEqual(rows.map((r) => r.cell), ['333 1234567', '340 9876543', '']);
+});
+
+test('a registry without a CLIENT table gives no phones', () => {
+  assert.equal(loadPhones(fakeArchive({ ALTRO: [] })), undefined);
+});
+
+// A Wincar folder with both files in it; open() decides what reading each one gives.
+function wincarFolder(openRegistry) {
+  const folder = mkdtempSync(join(tmpdir(), 'wincar-'));
+  for (const name of ['wcFatture.mdb', 'wcTabelle.mdb']) writeFileSync(join(folder, name), '');
+  const archive = fakeArchive({
+    TESFAT: [{ F_CODCLI: 7, F_NUMFAT: 1, F_TIPDOC: 'FI', F_DATFAT: new Date('2026-07-10'), F_ALFFAT: '' }],
+    ProgressiviFE: [{ F_PFE_PARIVA: '01234567890' }],
+  });
+  const open = (path) => (path.endsWith('wcFatture.mdb') ? archive : openRegistry());
+  return readArchive(join(folder, 'wcFatture.mdb'), open);
+}
+
+test('readArchive joins the registry next to the archive', () => {
+  const { invoices, vats } = wincarFolder(() => fakeArchive({ CLIENT: [{ F_CODCLI: 7, F_CELLUL: '333 1234567', F_TELEFO: '' }] }));
+  assert.equal(invoices[0].cell, '333 1234567');
+  assert.deepEqual(vats, ['01234567890']);
+});
+
+test('a registry that can\'t be read costs only the phones, not the invoices or the license', () => {
+  for (const openRegistry of [
+    () => { throw new Error('EBUSY: resource busy or locked'); }, // Wincar has it open
+    () => fakeArchive({ ALTRO: [] }), // no CLIENT table
+  ]) {
+    const { invoices, vats } = wincarFolder(openRegistry);
+    assert.equal(invoices.length, 1);
+    assert.equal(invoices[0].cell, '');
+    assert.deepEqual(vats, ['01234567890']);
+  }
+});
+
+// With the real registry next to the archive, the join must find phones: a type mismatch would find none, silently.
+test('readArchive reads invoices and VAT numbers, and phones when the registry is there', { skip }, () => {
   const { invoices, vats } = readArchive(fileURLToPath(file));
   assert.equal(invoices.length, 3253);
   assert.deepEqual(vats, ['03256760236']);
-  assert.ok(invoices.every((i) => i.cell === '' && i.landline === ''));
+  const withPhone = invoices.filter((i) => i.cell || i.landline).length;
+  if (existsSync(new URL('../data/wcTabelle.mdb', import.meta.url))) assert.ok(withPhone > 0, 'no invoice got a phone from wcTabelle.mdb');
+  else assert.equal(withPhone, 0);
 });

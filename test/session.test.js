@@ -64,6 +64,22 @@ test('a valid key unlocks and the rows follow the contact and state rules', asyn
   assert.equal(session.month(2026, 10)[0].status, 'messaged');
 });
 
+test('an emptied box keeps Wincar\'s number away; typing it back follows Wincar again', async () => {
+  const { session, store } = setup({ license: key });
+  await session.refresh();
+  session.setContact('phones', invoice.key, '');
+  assert.equal(store.data.phones[invoice.clientCode], '');
+  assert.equal(session.month(2026, 10)[0].phone, '');
+  assert.ok(session.outreach(invoice.key, 'Ciao', 'whatsapp').refused);
+
+  session.setContact('phones', invoice.key, ' 333 1111111 '); // what Wincar has
+  assert.equal(invoice.clientCode in store.data.phones, false);
+  assert.equal(session.month(2026, 10)[0].phone, '393331111111');
+
+  session.setContact('emails', invoice.key, ''); // nothing in Wincar to keep away
+  assert.deepEqual(store.data.emails, {});
+});
+
 test('a wrong key never replaces a working one', async () => {
   const { session, store } = setup();
   await session.refresh();
@@ -77,6 +93,22 @@ test('a key for another shop is rejected', async () => {
   const { session } = setup({ vats: ['01234567890'] });
   await session.refresh(); // the page always refreshes first, so the shop is known
   assert.match((await session.activate(key)).rejected, /altra azienda/);
+});
+
+test('a key typed while another archive is read is checked against that archive', async () => {
+  const { store } = setup();
+  const session = createSession({
+    store, publicKey, dbPath: () => store.data.dbPath ?? 'other.mdb', now: () => new Date('2026-10-26T12:00').getTime(),
+    readArchive: async (path) => {
+      await new Promise((r) => setTimeout(r, 5));
+      return { invoices: [invoice], vats: [path === 'shop.mdb' ? '03256760236' : '01234567890'] };
+    },
+  });
+  await session.refresh(); // another shop's archive is showing
+  const [, view] = await Promise.all([session.useArchive('shop.mdb'), session.activate(key)]);
+  assert.equal(view.rejected, null);
+  assert.equal(view.license.ok, true);
+  assert.equal(store.data.license, key);
 });
 
 test('turning the PC clock back locks the app', async () => {

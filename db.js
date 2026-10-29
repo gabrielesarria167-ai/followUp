@@ -10,15 +10,21 @@ const COLUMNS = ['F_NUMFAT', 'F_ALFFAT', 'F_TIPDOC', 'F_DATFAT', 'F_CODCLI', 'F_
 
 const s = (v) => (v ?? '').toString().trim();
 const join = (...parts) => parts.map(s).filter(Boolean).join(' ');
+// The client code both files agree on: 7, "7" and " 007" are one client. Code 0 is not a real client, so it's ''.
+const clientId = (v) => { const c = s(v).replace(/^0+(?=\d)/, ''); return c === '0' ? '' : c; };
 
 // Read-only: the whole file is read into memory once, Wincar's file is never opened for writing.
 export const openArchive = (path) => new MDBReader(readFileSync(path));
 
 // Wincar keeps phones in the customer registry (wcTabelle.mdb, table CLIENT); TESFAT.F_TELEFO is always empty.
 // F_CELLUL is the most filled and nearly all mobiles; F_TELEFO is mostly landlines.
-export const loadPhones = (registry) => new Map(registry.getTable('CLIENT')
-  .getData({ columns: ['F_CODCLI', 'F_CELLUL', 'F_TELEFO'] })
-  .map((r) => [r.F_CODCLI, { cell: s(r.F_CELLUL), landline: s(r.F_TELEFO) }]));
+// No CLIENT table, no phones: they're typed by hand.
+export function loadPhones(registry) {
+  if (!registry.getTableNames().includes('CLIENT')) return undefined;
+  return new Map(registry.getTable('CLIENT')
+    .getData({ columns: ['F_CODCLI', 'F_CELLUL', 'F_TELEFO'] })
+    .map((r) => [clientId(r.F_CODCLI), { cell: s(r.F_CELLUL), landline: s(r.F_TELEFO) }]));
+}
 
 // phones: from loadPhones, or none when the registry isn't there.
 export function loadInvoices(archive, phones = new Map()) {
@@ -42,8 +48,7 @@ export function loadInvoices(archive, phones = new Map()) {
         car: join(r.F_DESMAR, s(r.F_DESMOD).replace(/\s+dal\b.*$/i, '')),
         plate: s(r.F_TARGA),
         total: r.F_TOTFAT ?? 0,
-        // Code 0 is not a real client.
-        ...((r.F_CODCLI && phones.get(r.F_CODCLI)) || { cell: '', landline: '' }),
+        ...((clientId(r.F_CODCLI) && phones.get(clientId(r.F_CODCLI))) || { cell: '', landline: '' }),
       };
     })
     .sort((a, b) => b.date.localeCompare(a.date) || b.key.localeCompare(a.key, undefined, { numeric: true }));
@@ -57,10 +62,16 @@ export function shopVats(archive) {
 }
 
 // Everything FollowUp takes from Wincar. The customer registry sits next to wcFatture.mdb in Wincar's folder;
-// without it, phones are typed by hand. Runs in reader.js's own process (see main.js).
-export function readArchive(path) {
-  const archive = openArchive(path);
+// without it, phones are typed by hand. One that can't be read (locked by Wincar, damaged) only costs the phones,
+// never the invoices or the license. Runs in reader.js's own process (see main.js). open is only for tests.
+export function readArchive(path, open = openArchive) {
+  const archive = open(path);
   const registry = joinPath(dirname(path), 'wcTabelle.mdb');
-  const phones = existsSync(registry) ? loadPhones(openArchive(registry)) : undefined;
+  let phones;
+  try {
+    if (existsSync(registry)) phones = loadPhones(open(registry));
+  } catch {
+    phones = undefined;
+  }
   return { invoices: loadInvoices(archive, phones), vats: shopVats(archive) };
 }
