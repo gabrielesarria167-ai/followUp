@@ -68,6 +68,7 @@ Navy neutrals plus four signal colors. Each signal color has one meaning.
 - **Yellow** (yellow): waiting. Da contattare, and the license chip when 30 days or fewer are left.
 - **Red** (red): blocked or discarded. Senza cellulare, phone-field warnings, load errors, a rejected key, and the Elimina fill.
 - **Blue** (blue): neutral info and primary action. The "N fatture" pill, the focus ring, text selection, and the Successiva, Conferma, Salva and update-button fills.
+- **Slate** (muted): worth knowing, not blocking. The "senza telefono fisso" pill: a missing landline matters less than a missing mobile, so it stays out of the signal colors.
 - **Neutrals**:
   - bg is the page ground and recessed inputs.
   - surface is cards, the table, and outlined buttons.

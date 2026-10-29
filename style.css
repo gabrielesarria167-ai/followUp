@@ -96,6 +96,7 @@ button.pill:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
 .yellow, .state.pending { --c: var(--yellow); }
 .green, .state.messaged { --c: var(--green); }
 .red, .state.nophone { --c: var(--red); }
+.slate { --c: var(--muted); }
 .state.dismissed { --c: var(--off); color: var(--muted); }
 
 .bar {

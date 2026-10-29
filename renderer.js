@@ -28,6 +28,7 @@ const PINS = {
   pending: isPending,
   messaged: (r) => r.status === 'messaged',
   nophone: (r) => isPending(r) && !r.phone,
+  nolandline: (r) => isPending(r) && !r.landline,
 };
 const STATUS_ORDER = ['pending', 'nophone', 'messaged', 'dismissed'];
 // Why every invoice can show "Senza cellulare": the phones come from Wincar's customer registry.
@@ -181,6 +182,7 @@ function renderMonths(months) {
 function renderList() {
   const pending = rows.filter(isPending);
   const noPhone = pending.filter((r) => !r.phone).length;
+  const noLandline = pending.filter((r) => !r.landline).length;
   const messaged = rows.filter((r) => r.status === 'messaged').length;
   $('title').textContent = periodTitle();
   $('range-clear').hidden = !ranged();
@@ -198,6 +200,8 @@ function renderList() {
     : [
       pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`, 'pending'),
       messaged && pill('green', `${messaged} contattate`, 'messaged'), noPhone && pill('red', `${noPhone} senza cellulare`, 'nophone'),
+      // The landline matters less than the mobile (WhatsApp needs the mobile), so it gets the quiet color.
+      noLandline && pill('slate', `${noLandline} senza telefono fisso`, 'nolandline'),
     ]).filter(Boolean));
   for (const th of document.querySelectorAll('th[data-sort]')) {
     th.setAttribute('aria-sort', th.dataset.sort !== sort.col ? 'none' : sort.dir > 0 ? 'ascending' : 'descending');
