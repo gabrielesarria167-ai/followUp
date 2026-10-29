@@ -1,7 +1,7 @@
 {
   "name": "followup",
   "productName": "FollowUp",
-  "version": "0.6.8",
+  "version": "0.6.9",
   "description": "FollowUp",
   "main": "main.js",
   "private": true,
