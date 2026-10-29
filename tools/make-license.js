@@ -5,7 +5,7 @@
 //   node tools/make-license.js --search <P.IVA>            prints that shop's key(s), newest last
 //   node tools/make-license.js --rename <P.IVA> "<nuovo nome>"  new key, same expiry, new name (the old key keeps working)
 //   node tools/make-license.js --add <key>                  records a key made before the list existed
-//   node tools/make-license.js --revoke <P.IVA> ["<nome>"]  blocks that shop's keys (only the ones with that name, if given), from the next release on
+//   node tools/make-license.js --revoke <P.IVA> ["<nome>"]  blocks that shop's keys (only the ones with that name, if given), from the next release on, and deletes them from the ledger
 import { generateKeyPairSync } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -66,16 +66,20 @@ if (arg === '--init') {
   const p = readKey(name);
   if (!p) fail('Chiave non valida per questa versione di FollowUp.');
   if (keys().includes(name.trim())) fail('Chiave già registrata.');
+  if (REVOKED.includes(keyId(name))) fail('Chiave revocata.');
   record(name.trim());
   console.log(`Registrata: ${p.p} ${p.n ?? ''}, scade il ${fmt(p.e)}.`);
 } else if (arg === '--revoke') {
-  const ids = readable().filter((k) => readKey(k).p === name && (days === '365' || readKey(k).n === days)).map(keyId).filter((id) => !REVOKED.includes(id));
-  if (!ids.length) fail(`Nessuna chiave da revocare per ${name}: già revocate, o non registrate (aggiungile con --add).`);
-  writeFileSync(revokedFile, `// Written by tools/make-license.js --revoke. Key ids (the first 16 characters of the signature) that no longer unlock;
+  const match = readable().filter((k) => readKey(k).p === name && (days === '365' || readKey(k).n === days));
+  if (!match.length) fail(`Nessuna chiave da revocare per ${name}: non registrata (aggiungila con --add).`);
+  const ids = match.map(keyId).filter((id) => !REVOKED.includes(id));
+  if (ids.length) writeFileSync(revokedFile, `// Written by tools/make-license.js --revoke. Key ids (the first 16 characters of the signature) that no longer unlock;
 // a revocation reaches a shop with the first release it installs after this list changes.
 export const REVOKED = [${[...REVOKED, ...ids].map((id) => `\n  '${id}',`).join('')}${REVOKED.length + ids.length ? '\n' : ''}];
 `);
-  console.log(`Revocate ${ids.length} chiavi di ${name}. Pubblica una nuova versione: la revoca arriva al negozio con l'aggiornamento.`);
+  // Gone from the ledger for good; its id in revoked.js is all the app needs to keep refusing it.
+  writeFileSync(ledger, keys().filter((k) => !match.includes(k)).map((k) => `${k}\n`).join(''), { mode: 0o600 });
+  console.log(`Revocate ed eliminate ${match.length} chiavi di ${name}.${ids.length ? " Pubblica una nuova versione: la revoca arriva al negozio con l'aggiornamento." : ''}`);
 } else if (/^\d{11}$/.test(arg ?? '') && name && Number(days) > 0) {
   const e = new Date(Date.now() + Number(days) * DAY_MS).toISOString().slice(0, 10);
   const key = signLicense({ p: arg, n: name, e }, readFileSync(file));
