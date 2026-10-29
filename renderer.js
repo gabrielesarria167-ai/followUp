@@ -310,10 +310,11 @@ function renderDetail() {
       $('detail').querySelector('.template[aria-pressed="true"]').focus();
       $('detail').querySelector('textarea.message').closest('.field').scrollIntoView({ block: 'nearest' }); // the new text, and its warning, in view
     });
-    return b;
+    const edit = el('button', { className: 'btn tpl-edit', textContent: 'Modifica' });
+    edit.setAttribute('aria-label', `Modifica ${t.name}`);
+    edit.addEventListener('click', () => editTemplate(t));
+    return el('div', { className: 'template-row' }, b, edit);
   };
-  const edit = el('button', { className: 'link', textContent: 'Modifica' });
-  edit.addEventListener('click', () => editTemplate(tpl));
   const text = el('textarea', {
     className: 'message', rows: 6, maxLength: 1000, placeholder: 'Scrivi il tuo messaggio…',
     value: draft?.key === r.key ? draft.text : fill(tpl.text, r),
@@ -395,8 +396,9 @@ function renderDetail() {
       r.emailText && !r.email && el('span', { className: 'hint warn', textContent: 'Email non valida.' })),
     // Only what is still to send gets a message.
     isPending(r) && el('div', { className: 'field' },
-      el('span', {}, icon('file-text'), 'Template messaggi', edit),
-      el('div', { className: 'templates' }, ...templates.map(choose))),
+      el('span', {}, icon('file-text'), 'Template messaggi'),
+      el('div', { className: 'templates' }, ...templates.map(choose)),
+      el('span', { className: 'hint', textContent: 'Con Modifica cambi il template per sempre: vale per tutti i clienti, non solo per questo.' })),
     isPending(r) && el('label', { className: 'field' }, el('span', {}, icon('message'), 'Messaggio libero'),
       el('div', { className: 'compose' }, text, el('div', { className: 'compose-foot' }, emoji, count)), todo)),
     el('div', { className: 'actions' }, ...actions,

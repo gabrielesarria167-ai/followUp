@@ -128,7 +128,7 @@ Icons in `assets/` are copied from Lucide (lucide-static 0.460.0, ISC) and Simpl
   - an icon tile with the client name and place
   - Veicolo, Fattura, Pagamento and Totale rows, each with an icon
   - the phone and email fields (email is typed in FollowUp: Wincar has none)
-  - while still to contact: the five message templates (the one in use wears the selected-row look; Modifica rewrites it) and the Messaggio libero box (recessed bg, emoji button and character count), filled from the template and editable
+  - while still to contact: the five message templates (the one in use wears the selected-row look; each has its own Modifica button, which rewrites it for every client) and the Messaggio libero box (recessed bg, emoji button and character count), filled from the template and editable
   - full-width Invia su WhatsApp (green), then Invia Email (blue)
   - after Invia Email, a blue tinted note asks "L'hai inviata?": Sì, inviata (outlined) marks it contacted, and Non si è aperta copies the recipient, subject and text for webmail. Windows can take a mailto link without any mail program showing up, so only the owner can confirm it.
   - Elimina (red) and Successiva (blue) side by side
