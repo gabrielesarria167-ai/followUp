@@ -30,12 +30,13 @@ export const normalizeEmail = (text) => (text ?? '').match(/[\w.+-]+@[\w-]+(\.[\
 export const mailUrl = (email, subject, text) =>
   `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
 
-// The one answer to "which phone and email for this invoice": a phone saved in FollowUp wins over F_TELEFO;
-// emails are only typed in FollowUp. `saved` is { phones, emails }.
-export function resolveContact(inv, { phones, emails }) {
-  const phoneText = phones[contactKey(inv)] ?? inv.telefo;
+// The one answer to "which phones and email for this invoice": what's saved in FollowUp wins over Wincar's
+// registry; emails are only typed in FollowUp. `saved` is { phones, landlines, emails }; phones are the mobiles.
+export function resolveContact(inv, { phones, landlines = {}, emails }) {
+  const phoneText = phones[contactKey(inv)] ?? inv.cell;
+  const landline = landlines[contactKey(inv)] ?? inv.landline;
   const emailText = emails[contactKey(inv)] ?? '';
-  return { phoneText, ...normalizePhone(phoneText), emailText, email: normalizeEmail(emailText) };
+  return { phoneText, ...normalizePhone(phoneText), landline, emailText, email: normalizeEmail(emailText) };
 }
 
 const emailSubject = (inv) => `Fattura n. ${inv.number} del ${inv.date.split('-').reverse().join('/')}`;

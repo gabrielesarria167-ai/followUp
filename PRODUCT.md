@@ -20,7 +20,7 @@ FollowUp isn't a CRM or a marketing tool. It's a single-purpose after-work check
 ## Operating Context
 - The data comes from Wincar's `TESFAT` table (`wcFatture.mdb`), shipped inside the FollowUp folder. Updating it means replacing that file.
 - Many invoices go to the same fleet or dealer clients (in 2026, 15 distinct clients for about 25 invoices a month), so the same client can repeat several times in a month.
-- Phones come from `F_TELEFO` in the real data. The owner can add or correct a phone, and it's remembered per client.
+- Phones come from Wincar's customer registry (`wcTabelle.mdb`, table `CLIENT`, next to `wcFatture.mdb`): the mobile from `F_CELLUL`, used for WhatsApp, and the landline from `F_TELEFO`. `TESFAT.F_TELEFO` is always empty. The owner can add or correct either number, and it's remembered per client.
 - WhatsApp opens through `wa.me` (WhatsApp Desktop or Web) and the owner sends manually.
 - An invoice disappears from the list 7 days after it was messaged or dismissed.
 

@@ -1,8 +1,7 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell } from 'electron';
+import { app, BrowserWindow, clipboard, dialog, ipcMain, screen, shell, utilityProcess } from 'electron';
 import electronUpdater from 'electron-updater';
 import { copyFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { extname, join } from 'node:path';
-import { loadInvoices, openArchive, shopVats } from './db.js';
 import { MESSAGE_MAX } from './outreach.js';
 import { createSession } from './session.js';
 import { openStore, templateList, TEMPLATES } from './store.js';
@@ -32,18 +31,33 @@ function configuredDbPath() {
 // The archive picked on the lock screen (the latest choice), else the installer's, else the one inside FollowUp.
 const dbPath = () => store.data.dbPath ?? configuredDbPath() ?? join(dataDir(), 'wcFatture.mdb');
 
+// In its own process (reader.js): read in here, the raw files would keep the app at ~400 MB instead of ~80 MB.
+// Settles once: the exit that follows the answer (the kill) changes nothing.
+function readArchive(path) {
+  return new Promise((resolve, reject) => {
+    const reader = utilityProcess.fork(join(import.meta.dirname, 'reader.js'), [], { serviceName: 'FollowUp archivio' });
+    reader.once('message', (result) => {
+      reader.kill();
+      if (result.error) reject(new Error(result.error));
+      else resolve(result);
+    });
+    reader.once('exit', (code) => reject(new Error(`lettura interrotta (codice ${code})`)));
+    reader.postMessage(path);
+  });
+}
+
 // Locked or not, the page also gets the logo, which is a file in FollowUp's own folder.
 const meta = (view) => ({ ...view, logo: logoDataUrl() });
 
-ipcMain.handle('refresh', () => meta(session.refresh()));
+ipcMain.handle('refresh', async () => meta(await session.refresh()));
 
-ipcMain.handle('activate', (_e, key) => meta(session.activate(key)));
+ipcMain.handle('activate', async (_e, key) => meta(await session.activate(key)));
 
 ipcMain.handle('pickDb', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog(win, {
     title: 'Archivio fatture Wincar', properties: ['openFile'], filters: [{ name: 'Archivio Wincar', extensions: ['mdb'] }],
   });
-  return meta(canceled ? session.refresh() : session.useArchive(filePaths[0]));
+  return meta(await (canceled ? session.refresh() : session.useArchive(filePaths[0])));
 });
 
 const LOGO_TYPES = { '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
@@ -112,6 +126,7 @@ ipcMain.handle('search', (_e, query) => session.search(String(query ?? '')));
 ipcMain.handle('year', (_e, year) => session.year(year));
 
 ipcMain.handle('setPhone', (_e, key, text) => session.setContact('phones', key, text));
+ipcMain.handle('setLandline', (_e, key, text) => session.setContact('landlines', key, text));
 ipcMain.handle('setEmail', (_e, key, text) => session.setContact('emails', key, text));
 
 ipcMain.handle('setStatus', (_e, key, status) => session.setStatus(key, status));
@@ -154,7 +169,7 @@ app.whenReady().then(() => {
   session = createSession({
     store,
     dbPath,
-    readArchive: (path) => { const archive = openArchive(path); return { invoices: loadInvoices(archive), vats: shopVats(archive) }; },
+    readArchive,
   });
   // Never bigger than the screen: on a 1366×768 laptop the bottom bar would open off-screen.
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;

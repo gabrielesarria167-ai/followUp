@@ -5,7 +5,7 @@ const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 // FollowUp's own state. Never stored in Wincar.
 export function openStore(file) {
-  let data = { phones: {}, emails: {}, states: {}, templates: {} };
+  let data = { phones: {}, landlines: {}, emails: {}, states: {}, templates: {} };
   if (existsSync(file)) {
     try {
       data = { ...data, ...JSON.parse(readFileSync(file, 'utf8')) };

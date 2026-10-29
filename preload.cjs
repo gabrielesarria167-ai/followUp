@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   search: call('search'),
   year: call('year'),
   setPhone: call('setPhone'),
+  setLandline: call('setLandline'),
   setEmail: call('setEmail'),
   setStatus: call('setStatus'),
   remove: call('remove'),

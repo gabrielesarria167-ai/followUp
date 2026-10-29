@@ -44,14 +44,14 @@ test('mailUrl encodes subject and body', () => {
     'mailto:a@b.it?subject=Fattura%20n.%201&body=com\'%C3%A8%20%26%20ok%3F%0ACiao');
 });
 
-const inv = { key: 'FI-2026-1-', clientCode: 7, number: '1', date: '2026-07-10', telefo: '333 1111111' };
+const inv = { key: 'FI-2026-1-', clientCode: 7, number: '1', date: '2026-07-10', cell: '333 1111111' };
 const none = { phones: {}, emails: {} };
 
 test('plan whatsapp: a wa.me url from the best phone, and it marks contacted', () => {
   const p = plan({ invoice: inv, saved: none, message: ' Ciao ', mode: 'whatsapp' });
   assert.deepEqual(p, { url: 'https://wa.me/393331111111?text=Ciao', marks: true });
   const saved = plan({ invoice: inv, saved: { phones: { 7: '340 9999999' }, emails: {} }, message: 'Ciao', mode: 'whatsapp' });
-  assert.match(saved.url, /^https:\/\/wa\.me\/393409999999\?/); // saved phone wins over F_TELEFO
+  assert.match(saved.url, /^https:\/\/wa\.me\/393409999999\?/); // saved phone wins over the registry
 });
 
 test('plan email: not marked until the owner confirms, and carries the text to paste', () => {
@@ -65,7 +65,7 @@ test('plan refuses what cannot be sent', () => {
   const ask = (over) => plan({ invoice: inv, saved: none, message: 'Ciao', mode: 'whatsapp', ...over });
   assert.ok(ask({ invoice: undefined }).refused);
   assert.ok(ask({ message: '   ' }).refused);
-  assert.ok(ask({ invoice: { ...inv, telefo: '' } }).refused); // no phone
+  assert.ok(ask({ invoice: { ...inv, cell: '' } }).refused); // no phone
   assert.ok(ask({ mode: 'email' }).refused); // no email saved
 });
 

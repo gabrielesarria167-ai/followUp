@@ -28,7 +28,7 @@ test('templates: five, the owner\'s wording wins, the original stays', () => {
 
 test('monthView: phone precedence, state, hiding', () => {
   const now = Date.now();
-  const inv = (key, date, clientCode, telefo) => ({ key, date, number: key, clientCode, telefo, plate: '' });
+  const inv = (key, date, clientCode, cell) => ({ key, date, number: key, clientCode, cell, landline: '0444 111111', plate: '' });
   const invoices = [
     inv('a', '2026-07-10', 1, '333 1111111'),
     inv('b', '2026-07-09', 2, '333 2222222'),
@@ -38,13 +38,15 @@ test('monthView: phone precedence, state, hiding', () => {
   ];
   const data = {
     phones: { 2: '340 9999999' },
+    landlines: { 2: '0444 222222' },
     emails: { 2: 'b@x.it' },
     states: { c: { status: 'messaged', at: now - DAY }, d: { status: 'dismissed', at: now - 8 * DAY } },
   };
   const rows = monthView(invoices, data, 2026, 7, now);
   assert.deepEqual(rows.map((r) => r.key), ['a', 'b', 'c']);
-  assert.equal(rows[0].phone, '393331111111'); // from F_TELEFO
+  assert.equal(rows[0].phone, '393331111111'); // from the registry
   assert.equal(rows[1].phone, '393409999999'); // saved phone wins
+  assert.deepEqual(rows.map((r) => r.landline), ['0444 111111', '0444 222222', '0444 111111']); // saved landline wins too
   assert.deepEqual(rows.map((r) => r.email), ['', 'b@x.it', '']); // emails only from FollowUp
   assert.equal(rows[2].phone, '');
   assert.equal(rows[2].status, 'messaged');
@@ -65,7 +67,7 @@ test('monthView: phone precedence, state, hiding', () => {
 
 test('search matches every word in client, vehicle or plate, across periods', () => {
   const now = Date.now();
-  const inv = (key, date, client, vehicle, plate) => ({ key, date, number: key, clientCode: key, telefo: '', client, vehicle, plate });
+  const inv = (key, date, client, vehicle, plate) => ({ key, date, number: key, clientCode: key, cell: '', client, vehicle, plate });
   const invoices = [
     inv('a', '2026-08-10', 'AUTOTORINO SPA', 'TOYOTA Yaris Cross', 'GZ471TS'),
     inv('b', '2025-03-02', 'ROSSI MARIO', 'FIAT Panda', 'AB123CD'),
@@ -82,8 +84,8 @@ test('search matches every word in client, vehicle or plate, across periods', ()
 
 test('client code 0 keeps a saved phone on its own invoice', () => {
   const invoices = [
-    { key: 'f', date: '2026-07-06', number: 'f', clientCode: 0, telefo: '', plate: '' },
-    { key: 'g', date: '2026-07-05', number: 'g', clientCode: 0, telefo: '', plate: '' },
+    { key: 'f', date: '2026-07-06', number: 'f', clientCode: 0, cell: '', plate: '' },
+    { key: 'g', date: '2026-07-05', number: 'g', clientCode: 0, cell: '', plate: '' },
   ];
   const rows = monthView(invoices, { phones: { [contactKey(invoices[0])]: '333 5555555' }, emails: {}, states: {} }, 2026, 7, Date.now());
   assert.deepEqual(rows.map((r) => r.phone), ['393335555555', '']);

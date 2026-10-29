@@ -5,7 +5,7 @@ import { monthView, rangeView, searchView, templateList, yearView } from './stor
 
 // The app's view of the Archive and the License together. While locked it holds no invoices, so every query
 // and action finds nothing to act on. The clock rule lives here too: the last day seen counts as "now".
-// readArchive(path) -> { invoices, vats }; now() is the clock; dbPath() says which archive to read.
+// readArchive(path) -> { invoices, vats }, or a promise of it; now() is the clock; dbPath() says which archive to read.
 // publicKey is only for tests: the shipped one can't verify keys made with a test keypair.
 export function createSession({ store, dbPath, readArchive, now = Date.now, publicKey }) {
   let invoices = [];
@@ -13,12 +13,12 @@ export function createSession({ store, dbPath, readArchive, now = Date.now, publ
 
   const checkKey = (key) => checkLicense(key, { ...shop, now: now(), lastSeen: store.data.lastSeen }, publicKey);
 
-  function refresh() {
+  async function read() {
     const path = dbPath();
     let all = [];
     let error = null;
     try {
-      const archive = readArchive(path);
+      const archive = await readArchive(path);
       all = archive.invoices;
       shop = { vats: archive.vats, latest: all[0]?.date ?? null };
     } catch (err) {
@@ -41,12 +41,16 @@ export function createSession({ store, dbPath, readArchive, now = Date.now, publ
     };
   }
 
+  // One read at a time, in order: no two archive reads at once, and an older one never lands last.
+  let queue = Promise.resolve();
+  const refresh = () => (queue = queue.then(read, read));
+
   // A wrong key never replaces a working one.
-  function activate(key) {
+  async function activate(key) {
     const k = String(key ?? '').trim();
     const { ok, reason } = checkKey(k);
     if (ok) store.update((d) => { d.license = k; });
-    return { ...refresh(), rejected: ok ? null : reason };
+    return { ...(await refresh()), rejected: ok ? null : reason };
   }
 
   // Every state change goes through here: a locked session, or a key that isn't a loaded invoice, changes nothing.

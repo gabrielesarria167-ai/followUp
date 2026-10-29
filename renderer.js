@@ -191,7 +191,7 @@ function renderList() {
     ? [pill('green', searching() ? 'Nessuna da contattare' : ranged() ? 'Periodo completato' : `${MONTHS[month - 1]} completato`), messaged && pill('green', `${messaged} contattate`, 'messaged')]
     : [
       pill('blue', `${rows.length} fatture`), pill('yellow', `${pending.length} da contattare`, 'pending'),
-      messaged && pill('green', `${messaged} contattate`, 'messaged'), noPhone && pill('red', `${noPhone} senza telefono`, 'nophone'),
+      messaged && pill('green', `${messaged} contattate`, 'messaged'), noPhone && pill('red', `${noPhone} senza cellulare`, 'nophone'),
     ]).filter(Boolean));
   for (const th of document.querySelectorAll('th[data-sort]')) {
     th.setAttribute('aria-sort', th.dataset.sort !== sort.col ? 'none' : sort.dir > 0 ? 'ascending' : 'descending');
@@ -210,7 +210,7 @@ function renderList() {
 function stateOf(r) {
   if (r.status === 'messaged') return ['messaged', 'Contattato'];
   if (r.status === 'dismissed') return ['dismissed', 'Eliminata'];
-  return r.phone ? ['pending', 'Da contattare'] : ['nophone', 'Senza telefono'];
+  return r.phone ? ['pending', 'Da contattare'] : ['nophone', 'Senza cellulare'];
 }
 
 function row(r) {
@@ -250,11 +250,12 @@ function renderDetail() {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') input.blur(); });
     return input;
   };
-  const phone = contact('tel', r.phoneText, 'Aggiungi numero', window.api.setPhone);
+  const phone = contact('tel', r.phoneText, 'Aggiungi cellulare', window.api.setPhone);
+  const landline = contact('tel', r.landline, 'Aggiungi numero fisso', window.api.setLandline);
   const email = contact('email', r.emailText, 'Aggiungi email', window.api.setEmail);
   const [hint, warn] =
     r.phoneText && !r.phone ? ['Numero non valido.', true]
-    : !r.phoneText ? ['Aggiungi un numero per scrivere su WhatsApp.', true]
+    : !r.phoneText ? ['Aggiungi un cellulare per scrivere su WhatsApp.', true]
     : !r.mobile ? ['Numero fisso? WhatsApp potrebbe non funzionare.', true]
     : ['Se lo correggi, resta salvato per questo cliente.', false];
 
@@ -287,7 +288,7 @@ function renderDetail() {
   nextBtn.addEventListener('click', () => select(next.key));
   const wa = action('Invia su WhatsApp', 'btn btn-wa', () => window.api.openWhatsApp(r.key, text.value), !r.phone);
   wa.prepend(icon('whatsapp'));
-  if (!r.phone) wa.title = 'Aggiungi prima un numero di telefono';
+  if (!r.phone) wa.title = 'Aggiungi prima un cellulare';
   // Opening the mail program proves nothing (an old one can take the link and never show up): the owner confirms.
   const mail = el('button', { className: 'btn btn-mail btn-blue', textContent: 'Invia Email', disabled: !r.email });
   mail.addEventListener('click', async () => {
@@ -345,8 +346,9 @@ function renderDetail() {
       el('dt', {}, icon('card'), 'Pagamento'), el('dd', { textContent: r.payment || '—' }),
       el('dt', {}, icon('coins'), 'Totale'), el('dd', { className: 'nowrap total', textContent: euro.format(r.total) })),
     el('label', { className: 'field' },
-      el('span', {}, icon('phone'), 'Telefono'), phone,
+      el('span', {}, icon('phone'), 'Cellulare'), phone,
       el('span', { className: `hint${warn ? ' warn' : ''}`, textContent: hint })),
+    el('label', { className: 'field' }, el('span', {}, icon('phone'), 'Telefono fisso'), landline),
     el('label', { className: 'field' },
       el('span', {}, icon('mail'), 'Email'), email,
       r.emailText && !r.email && el('span', { className: 'hint warn', textContent: 'Email non valida.' })),
