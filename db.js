@@ -63,15 +63,20 @@ export function shopVats(archive) {
 
 // Everything FollowUp takes from Wincar. The customer registry sits next to wcFatture.mdb in Wincar's folder;
 // without it, phones are typed by hand. One that can't be read (locked by Wincar, damaged) only costs the phones,
-// never the invoices or the license. Runs in reader.js's own process (see main.js). open is only for tests.
+// never the invoices or the license. registry says which, for the status line: 'ok', 'missing' or 'unreadable'.
+// Runs in reader.js's own process (see main.js). open is only for tests.
 export function readArchive(path, open = openArchive) {
   const archive = open(path);
-  const registry = joinPath(dirname(path), 'wcTabelle.mdb');
+  const file = joinPath(dirname(path), 'wcTabelle.mdb');
   let phones;
-  try {
-    if (existsSync(registry)) phones = loadPhones(open(registry));
-  } catch {
-    phones = undefined;
+  let registry = 'missing';
+  if (existsSync(file)) {
+    try {
+      phones = loadPhones(open(file));
+    } catch {
+      phones = undefined;
+    }
+    registry = phones ? 'ok' : 'unreadable';
   }
-  return { invoices: loadInvoices(archive, phones), vats: shopVats(archive) };
+  return { invoices: loadInvoices(archive, phones), vats: shopVats(archive), registry };
 }

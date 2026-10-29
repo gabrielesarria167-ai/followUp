@@ -30,6 +30,11 @@ const PINS = {
   nophone: (r) => isPending(r) && !r.phone,
 };
 const STATUS_ORDER = ['pending', 'nophone', 'messaged', 'dismissed'];
+// Why every invoice can show "Senza cellulare": the phones come from Wincar's customer registry.
+const REGISTRY_NOTES = {
+  missing: 'Rubrica clienti di Wincar (wcTabelle.mdb) non trovata accanto all\'archivio: i cellulari si aggiungono a mano',
+  unreadable: 'Rubrica clienti di Wincar (wcTabelle.mdb) illeggibile, forse aperta in Wincar: premi Aggiorna per riprovare',
+};
 const SORTS = {
   date: (a, b) => a.date.localeCompare(b.date) || SORTS.number(a, b),
   number: (a, b) => a.number.localeCompare(b.number, undefined, { numeric: true }),
@@ -63,7 +68,8 @@ async function refresh(meta) {
   $('company-name').textContent = license.name ?? '';
   showLogo(meta.logo);
   templates = meta.templates;
-  $('status').textContent = meta.error ?? (meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura');
+  $('status').textContent = meta.error
+    ?? [meta.latest ? `Fatture fino al ${fmtDate(meta.latest)}` : 'Nessuna fattura', REGISTRY_NOTES[meta.registry]].filter(Boolean).join(' · ');
   $('status').classList.toggle('error', !!meta.error);
   // Locked: no invoices to show; forget the month so unlocking opens the newest one.
   if (!license.ok) { year = null; return; }

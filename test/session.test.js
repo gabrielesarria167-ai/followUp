@@ -128,6 +128,19 @@ test('a failed lastSeen save still shows the screen', async () => {
   assert.equal(session.month(2026, 10).length, 1);
 });
 
+test('the view says whether Wincar\'s registry gave the phones, once unlocked', async () => {
+  const setupWith = (license, registry) => {
+    const { store } = setup({ license });
+    return createSession({
+      store, publicKey, dbPath: () => 'fake.mdb', now: () => new Date('2026-10-26T12:00').getTime(),
+      readArchive: () => ({ invoices: [invoice], vats: ['03256760236'], registry }),
+    });
+  };
+  assert.equal((await setupWith(key, 'missing').refresh()).registry, 'missing');
+  assert.equal((await setupWith(key, 'unreadable').refresh()).registry, 'unreadable');
+  assert.equal((await setupWith(undefined, 'missing').refresh()).registry, null); // locked: no phones to explain
+});
+
 test('an unreadable archive reports the error and locks', async () => {
   const { store } = setup({ license: key });
   const session = createSession({ store, publicKey, dbPath: () => 'fake.mdb', readArchive: async () => { throw new Error('boom'); } });

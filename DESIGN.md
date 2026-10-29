@@ -94,7 +94,7 @@ Client names and places from Wincar are shown in title case. Dates, numbers, tot
 
 ## Layout
 
-A grid of months (230px), list (fluid) and detail (400px), with 24px gaps and page padding of 24px 32px 72px. The header bar (brand, the licensed company with its logo tile, license chip, search, Aggiorna) sits on #0b1526 with a hairline below it; a matching bar fixed at the bottom holds the status line on the left (archive date, preview note, load errors). The detail panel is sticky and never taller than the window: its body scrolls while the actions stay at the bottom.
+A grid of months (230px), list (fluid) and detail (400px), with 24px gaps and page padding of 24px 32px 72px. The header bar (brand, the licensed company with its logo tile, license chip, search, Aggiorna) sits on #0b1526 with a hairline below it; a matching bar fixed at the bottom holds the status line on the left (archive date, preview note, a note when Wincar's customer registry is missing or unreadable, load errors). The detail panel is sticky and never taller than the window: its body scrolls while the actions stay at the bottom.
 
 The window opens at 1400×880, or smaller to fit the screen.
 

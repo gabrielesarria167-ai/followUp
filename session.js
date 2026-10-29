@@ -17,9 +17,11 @@ export function createSession({ store, dbPath, readArchive, now = Date.now, publ
     const path = dbPath();
     let all = [];
     let error = null;
+    let registry = null; // whether Wincar's customer registry gave the phones; see db.js readArchive
     try {
       const archive = await readArchive(path);
       all = archive.invoices;
+      registry = archive.registry ?? null;
       shop = { vats: archive.vats, latest: all[0]?.date ?? null };
     } catch (err) {
       shop = { vats: [], latest: null };
@@ -34,6 +36,7 @@ export function createSession({ store, dbPath, readArchive, now = Date.now, publ
     invoices = license.ok ? all : [];
     return {
       error,
+      registry: license.ok ? registry : null,
       years: [...new Set(invoices.map((i) => Number(i.date.slice(0, 4))))],
       latest: invoices[0]?.date ?? null,
       license: { ...license, needsDb: !shop.vats.length },

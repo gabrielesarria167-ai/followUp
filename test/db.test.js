@@ -73,10 +73,11 @@ test('a registry without a CLIENT table gives no phones', () => {
   assert.equal(loadPhones(fakeArchive({ ALTRO: [] })), undefined);
 });
 
-// A Wincar folder with both files in it; open() decides what reading each one gives.
+// A Wincar folder with the archive, and the registry unless openRegistry is null; it decides what reading it gives.
 function wincarFolder(openRegistry) {
   const folder = mkdtempSync(join(tmpdir(), 'wincar-'));
-  for (const name of ['wcFatture.mdb', 'wcTabelle.mdb']) writeFileSync(join(folder, name), '');
+  writeFileSync(join(folder, 'wcFatture.mdb'), '');
+  if (openRegistry) writeFileSync(join(folder, 'wcTabelle.mdb'), '');
   const archive = fakeArchive({
     TESFAT: [{ F_CODCLI: 7, F_NUMFAT: 1, F_TIPDOC: 'FI', F_DATFAT: new Date('2026-07-10'), F_ALFFAT: '' }],
     ProgressiviFE: [{ F_PFE_PARIVA: '01234567890' }],
@@ -86,9 +87,16 @@ function wincarFolder(openRegistry) {
 }
 
 test('readArchive joins the registry next to the archive', () => {
-  const { invoices, vats } = wincarFolder(() => fakeArchive({ CLIENT: [{ F_CODCLI: 7, F_CELLUL: '333 1234567', F_TELEFO: '' }] }));
+  const { invoices, vats, registry } = wincarFolder(() => fakeArchive({ CLIENT: [{ F_CODCLI: 7, F_CELLUL: '333 1234567', F_TELEFO: '' }] }));
   assert.equal(invoices[0].cell, '333 1234567');
   assert.deepEqual(vats, ['01234567890']);
+  assert.equal(registry, 'ok');
+});
+
+test('no registry next to the archive: the invoices, no phones, and it says so', () => {
+  const { invoices, registry } = wincarFolder(null);
+  assert.equal(invoices[0].cell, '');
+  assert.equal(registry, 'missing');
 });
 
 test('a registry that can\'t be read costs only the phones, not the invoices or the license', () => {
@@ -96,10 +104,11 @@ test('a registry that can\'t be read costs only the phones, not the invoices or 
     () => { throw new Error('EBUSY: resource busy or locked'); }, // Wincar has it open
     () => fakeArchive({ ALTRO: [] }), // no CLIENT table
   ]) {
-    const { invoices, vats } = wincarFolder(openRegistry);
+    const { invoices, vats, registry } = wincarFolder(openRegistry);
     assert.equal(invoices.length, 1);
     assert.equal(invoices[0].cell, '');
     assert.deepEqual(vats, ['01234567890']);
+    assert.equal(registry, 'unreadable');
   }
 });
 
